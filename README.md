@@ -1,6 +1,6 @@
 # DorC - v1
 
-DorC is an open source image recognition model. It is built with PyTorch transfer learning with EfficientNet-B0 backbone with CLIP zero-shot classification for data curation and image scraping.
+DorC is an open source image classification model. It is built with PyTorch transfer learning with EfficientNet-B0 backbone with CLIP zero-shot classification for data curation and image scraping.
 
 ## Classes
 
@@ -26,12 +26,14 @@ pip install git+https://github.com/openai/CLIP.git
 ### Train from scratch
 
 ```bash
+cd code
 python train.py
 ```
 
 ### Incremental training (add new classes/images)
 
 ```bash
+cd code
 python train.py --increment
 ```
 
@@ -40,12 +42,14 @@ Loads backbone weights from previous model, trains for 15 epochs at lower LR (0.
 ### Prediction
 
 ```bash
+cd code
 python predict.py <image_path>
 ```
 
 ### Evaluation
 
 ```bash
+cd code
 python evaluate.py          # validation set
 python evaluate.py --full   # full dataset
 ```
@@ -53,36 +57,56 @@ python evaluate.py --full   # full dataset
 ### Scrape new images
 
 ```bash
+cd code
 python scrape.py <count> <species>
 # e.g. python scrape.py 100 wolf
 ```
 
-Scrapes from Bing, classifies with CLIP, verifies with model, sorts into `new/` or `unconfirmed/`.
+Scrapes from Bing, classifies with CLIP, verifies with model, sorts into `img/new/` or `img/unconfirmed/`.
+
+### Export to ONNX
+
+```bash
+cd code
+python export_onnx.py
+```
+
+Exports model to ONNX format for web deployment (~16MB).
 
 ## Project Structure
 
 ```
 model_1/
+├── code/                  # Python scripts
+│   ├── classify_species.py  # CLIP zero-shot classifier
+│   ├── config.py            # Classes, hyperparameters, paths
+│   ├── dataset.py           # Data loading, filtering, augmentation
+│   ├── evaluate.py          # Confusion matrix, classification report
+│   ├── export_onnx.py       # ONNX export script
+│   ├── model.py             # EfficientNet-B0 build + weight loading
+│   ├── predict.py           # Single image inference
+│   ├── scrape.py            # Image scraping pipeline
+│   └── train.py             # Training loop with early stopping
 ├── data/                  # Trained class images (108 classes)
-├── new/                   # Scraped images confirmed by model
-├── unconfirmed/           # Scraped images where CLIP and model disagree
-├── untrained/             # Classes below MIN_IMAGES threshold (34 classes)
-├── classify_species.py    # CLIP zero-shot classifier
-├── config.py              # Classes, hyperparameters, paths
-├── dataset.py             # Data loading, filtering, augmentation
-├── evaluate.py            # Confusion matrix, classification report
+├── img/                   # Image organization
+│   ├── new/                 # Scraped images confirmed by model
+│   ├── unconfirmed/         # Scraped images where CLIP and model disagree
+│   └── untrained/           # Classes below MIN_IMAGES threshold
+├── api/                   # ONNX model for web API
+│   ├── model.onnx           # ONNX model (~16MB)
+│   └── classes.json         # Class names array
+├── reports/               # Generated evaluation reports
+├── frontend/              # Next.js web interface
+├── env/                   # Python virtual environment
 ├── model.pt               # Trained weights + class_to_idx
-├── model.py               # EfficientNet-B0 build + weight loading
-├── predict.py             # Single image inference
-├── scrape.py              # Image scraping pipeline
-└── train.py               # Training loop with early stopping
+└── README.md
 ```
 
 ## Architecture
 
 - **Backbone:** EfficientNet-B0 (ImageNet pretrained)
 - **Classifier:** Dropout(0.4) → Linear(1280, num_classes)
-- **Input:** Datasets from Kaggle (credits.txt) + Scraper Images + Images from API's for itinialial training [dog.ceo, thecatapi.com, random-d.uk, randomfox.ca]
+- **Input:** Datasets from Kaggle (credits.txt) + Scraper Images + Images from APIs for initial training [dog.ceo, thecatapi.com, random-d.uk, randomfox.ca]
 - **Optimization:** AdamW, CosineAnnealingLR, Label Smoothing (0.1)
 - **Augmentation:** RandomCrop, Flip, Rotation, ColorJitter, GaussianBlur, RandomErasing
 
@@ -99,10 +123,18 @@ model_1/
 
 ## Data Pipeline
 
-1. **Data** merged from multiple sources (Kaggle, API's, Scraper)
-2. **CLIP** classies similar looking animals (e.g. wolf, hyena, jackal, fox)
+1. **Data** merged from multiple sources (Kaggle, APIs, Scraper)
+2. **CLIP** classifies similar looking animals (e.g. wolf, hyena, jackal, fox)
 3. **Scrape** adds images via Bing with automatic deduplication (MD5 hash)
-4. **Filter** drops classes below 100 images to `untrained/`
+4. **Filter** drops classes below 100 images to `img/untrained/`
+
+## Web API
+
+The model is deployed as an ONNX model on Vercel serverless functions:
+
+- **Endpoint:** `POST https://api.godkode.xyz/predict`
+- **Input:** Image (multipart/form-data or base64 JSON)
+- **Output:** `{ class: "wolf", confidence: 95.2, top5: [...] }`
 
 ## Results
 

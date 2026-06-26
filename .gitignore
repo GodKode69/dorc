@@ -1,9 +1,10 @@
 data/
+img/
 __pycache__/
 *.pyc
-confusion_matrix*.png
-classification_report*.txt
-confused_pairs*.txt
 .env/
-new/
-unconfirmed/
+node_modules/
+.next/
+out/
+*.onnx
+model.pt

@@ -1,0 +1,22 @@
+Top Confused Pairs (True -> Predicted: Count)
+==================================================
+mouse -> rat: 84
+toad -> frog: 55
+cardinal -> finch: 53
+robin -> finch: 44
+frog -> toad: 41
+rat -> mouse: 33
+dolphin -> whale: 27
+shark -> whale: 26
+corals -> fish: 24
+lizard -> toad: 20
+lizard -> iguana: 15
+whale -> dolphin: 15
+gecko -> lizard: 13
+iguana -> lizard: 13
+lizard -> snake: 13
+salamander -> lizard: 13
+fish -> corals: 12
+fish -> puffers: 11
+octopus -> corals: 11
+sea_rays -> whale: 11
