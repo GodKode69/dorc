@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dorc.vercel.app"),
   title: "DORC | Image Classifier",
   description: "An image classifier model based on EfficientNet-B0 — 108 classes, client-side ONNX inference.",
   openGraph: {
