@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import ImageUpload from "@/components/ImageUpload";
+import ImageUpload, { type ImageUploadHandle } from "@/components/ImageUpload";
 import PredictionResult from "@/components/PredictionResult";
 import { useClassifier } from "@/lib/useClassifier";
 
@@ -11,7 +11,7 @@ interface ClassData {
 }
 
 export default function Home() {
-  const { prediction, loading, error, modelReady, classify } =
+  const { prediction, error, status, progress, statusLabel, isLoading, classify, reset } =
     useClassifier();
   const [preview, setPreview] = useState<string | null>(null);
   const [view, setView] = useState<"classify" | "classes">("classify");
@@ -172,10 +172,11 @@ export default function Home() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "5rem 2rem 2rem",
+            padding: "5rem 1rem 2rem",
           }}
         >
           <div
+            className="classify-layout"
             style={{
               display: "flex",
               gap: "1.5rem",
@@ -186,6 +187,7 @@ export default function Home() {
           >
             {/* Left popup: Upload / Image */}
             <div
+              className="classify-panel"
               style={{
                 flex: 1,
                 minWidth: 0,
@@ -197,7 +199,9 @@ export default function Home() {
                 <>
                   <ImageUpload
                     onImageSelect={handleImageSelect}
-                    disabled={loading}
+                    disabled={isLoading}
+                    statusLabel={statusLabel}
+                    progress={progress}
                   />
                   <div
                     style={{
@@ -225,6 +229,7 @@ export default function Home() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    position: "relative",
                   }}
                 >
                   {preview && (
@@ -238,6 +243,39 @@ export default function Home() {
                       }}
                     />
                   )}
+                  {isLoading && (
+                    <div style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      padding: "0.75rem 1.5rem 1rem",
+                      background: "linear-gradient(transparent, rgba(10, 10, 15, 0.9))",
+                    }}>
+                      <div style={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: "0.62rem",
+                        color: "var(--accent)",
+                        marginBottom: "0.4rem",
+                      }}>
+                        {statusLabel}
+                      </div>
+                      <div style={{
+                        height: "3px",
+                        borderRadius: "999px",
+                        background: "rgba(255,255,255,0.06)",
+                        overflow: "hidden",
+                      }}>
+                        <div style={{
+                          height: "100%",
+                          width: `${progress}%`,
+                          borderRadius: "999px",
+                          background: "var(--accent)",
+                          transition: "width 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                        }} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -245,7 +283,7 @@ export default function Home() {
             {/* Right popup: Results */}
             {hasResult && (
               <div
-                className="pop-in"
+                className="pop-in classify-panel"
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -333,7 +371,7 @@ export default function Home() {
           style={{
             flex: 1,
             overflow: "auto",
-            padding: "5rem 2rem 2rem",
+            padding: "5rem 1rem 2rem",
           }}
         >
           <div
@@ -418,6 +456,32 @@ export default function Home() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* First-load notice */}
+      {status === "loading_runtime" && (
+        <div
+          className="fade-in"
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            maxWidth: "280px",
+            padding: "0.75rem 1rem",
+            borderRadius: "10px",
+            background: "rgba(18, 18, 26, 0.9)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid var(--border)",
+            fontFamily: '"Inter", sans-serif',
+            fontSize: "0.72rem",
+            color: "var(--text-dim)",
+            lineHeight: 1.5,
+            zIndex: 10,
+          }}
+        >
+          <span style={{ color: "var(--accent)", fontWeight: 500 }}>First visit?</span>{" "}
+          The model (~66MB) is being downloaded and compiled. This only happens once — it will be cached for future visits.
         </div>
       )}
     </div>

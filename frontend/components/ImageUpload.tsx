@@ -6,6 +6,8 @@ interface ImageUploadProps {
   onImageSelect: (file: File) => void;
   preview?: string | null;
   disabled?: boolean;
+  statusLabel?: string;
+  progress?: number;
 }
 
 export interface ImageUploadHandle {
@@ -13,7 +15,7 @@ export interface ImageUploadHandle {
 }
 
 const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
-  function ImageUpload({ onImageSelect, preview, disabled = false }, ref) {
+  function ImageUpload({ onImageSelect, preview, disabled = false, statusLabel, progress = 0 }, ref) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [dragActive, setDragActive] = useState(false);
 
@@ -31,6 +33,8 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
       if (file && file.type.startsWith("image/")) onImageSelect(file);
     }, [onImageSelect, disabled]);
 
+    const showProgress = disabled && statusLabel;
+
     return (
       <div
         onDrop={handleDrop}
@@ -46,13 +50,13 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
           cursor: disabled || preview ? "default" : "pointer",
           transition: "all 0.2s ease",
           background: dragActive ? "var(--accent-dim)" : "var(--bg-surface)",
-          opacity: disabled ? 0.5 : 1,
           height: "100%",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          position: "relative",
         }}
       >
         <input
@@ -99,7 +103,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
               color: dragActive ? "var(--accent)" : "var(--text)",
               marginBottom: "0.3rem",
             }}>
-              {disabled ? "Processing..." : dragActive ? "Drop to classify" : "Drop image or click to upload"}
+              {disabled ? statusLabel || "Processing..." : dragActive ? "Drop to classify" : "Drop image or click to upload"}
             </p>
             <p style={{
               fontFamily: '"JetBrains Mono", monospace',
@@ -109,6 +113,33 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
               JPG &middot; PNG &middot; WebP
             </p>
           </>
+        )}
+
+        {/* Progress bar */}
+        {showProgress && (
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: "0.75rem 1.5rem 1rem",
+            background: "linear-gradient(transparent, rgba(10, 10, 15, 0.9))",
+          }}>
+            <div style={{
+              height: "3px",
+              borderRadius: "999px",
+              background: "rgba(255,255,255,0.06)",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%",
+                width: `${progress}%`,
+                borderRadius: "999px",
+                background: "var(--accent)",
+                transition: "width 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+              }} />
+            </div>
+          </div>
         )}
       </div>
     );

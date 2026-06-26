@@ -8,6 +8,15 @@ interface Prediction {
   top5: { class: string; confidence: number }[];
 }
 
+type Status =
+  | "idle"
+  | "loading_runtime"
+  | "compiling_wasm"
+  | "loading_model"
+  | "ready"
+  | "preprocessing"
+  | "classifying";
+
 const MEAN = [0.485, 0.456, 0.406];
 const STD = [0.229, 0.224, 0.225];
 const IMG_SIZE = 224;
@@ -16,9 +25,10 @@ let ortPromise: Promise<typeof import("onnxruntime-web/webgpu")> | null = null;
 let sessionPromise: Promise<import("onnxruntime-web/webgpu").InferenceSession> | null = null;
 let classNamesPromise: Promise<string[]> | null = null;
 
-function getOrt() {
+function getOrt(onStatus?: (s: Status) => void) {
   if (!ortPromise) {
     ortPromise = import("onnxruntime-web/webgpu").then((ort) => {
+      onStatus?.("compiling_wasm");
       ort.env.wasm.numThreads = 1;
       ort.env.wasm.wasmPaths = "/";
       return ort;
@@ -27,13 +37,14 @@ function getOrt() {
   return ortPromise;
 }
 
-async function getSession() {
+async function getSession(onStatus?: (s: Status) => void) {
   if (!sessionPromise) {
-    sessionPromise = getOrt().then((ort) =>
-      ort.InferenceSession.create("/model.onnx", {
+    sessionPromise = getOrt(onStatus).then((ort) => {
+      onStatus?.("loading_model");
+      return ort.InferenceSession.create("/model.onnx", {
         executionProviders: ["webgpu", "wasm"],
-      })
-    );
+      });
+    });
   }
   return sessionPromise;
 }
@@ -46,7 +57,7 @@ function getClassNames(): Promise<string[]> {
 }
 
 async function preprocessImage(imageData: ImageData) {
-  const { width, height, data } = imageData;
+  const { width, height } = imageData;
 
   const canvas = document.createElement("canvas");
   canvas.width = IMG_SIZE;
@@ -123,27 +134,59 @@ async function loadImageToImageData(file: File): Promise<ImageData> {
   }
 }
 
+function statusToProgress(status: Status): number {
+  switch (status) {
+    case "idle": return 0;
+    case "loading_runtime": return 15;
+    case "compiling_wasm": return 40;
+    case "loading_model": return 70;
+    case "ready": return 100;
+    case "preprocessing": return 10;
+    case "classifying": return 60;
+    default: return 0;
+  }
+}
+
+function statusToLabel(status: Status): string {
+  switch (status) {
+    case "idle": return "";
+    case "loading_runtime": return "Downloading runtime...";
+    case "compiling_wasm": return "Compiling WebAssembly...";
+    case "loading_model": return "Loading model...";
+    case "ready": return "";
+    case "preprocessing": return "Preprocessing image...";
+    case "classifying": return "Running inference...";
+    default: return "";
+  }
+}
+
 export function useClassifier() {
   const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modelReady, setModelReady] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
+
+  const updateStatus = useCallback((s: Status) => setStatus(s), []);
 
   useEffect(() => {
-    Promise.all([getSession(), getClassNames()]).then(() => setModelReady(true));
-  }, []);
+    setStatus("loading_runtime");
+    Promise.all([getSession(updateStatus), getClassNames()]).then(() => {
+      setStatus("ready");
+    });
+  }, [updateStatus]);
 
   const classify = useCallback(async (file: File) => {
-    setLoading(true);
     setError(null);
     setPrediction(null);
+    setStatus("preprocessing");
 
     try {
       const imageData = await loadImageToImageData(file);
       const tensor = await preprocessImage(imageData);
 
+      setStatus("classifying");
+
       const [session, classNames] = await Promise.all([
-        getSession(),
+        getSession(updateStatus),
         getClassNames(),
       ]);
 
@@ -169,17 +212,21 @@ export function useClassifier() {
         confidence: top5[0].confidence,
         top5,
       });
+      setStatus("ready");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Classification failed");
-    } finally {
-      setLoading(false);
+      setStatus("ready");
     }
-  }, []);
+  }, [updateStatus]);
 
   const reset = useCallback(() => {
     setPrediction(null);
     setError(null);
   }, []);
 
-  return { prediction, loading, error, modelReady, classify, reset };
+  const progress = statusToProgress(status);
+  const statusLabel = statusToLabel(status);
+  const isLoading = status !== "idle" && status !== "ready";
+
+  return { prediction, error, status, progress, statusLabel, isLoading, classify, reset };
 }
