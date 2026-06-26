@@ -1,9 +1,9 @@
-model.pt
 data/
-classify_species.py
 __pycache__/
 *.pyc
 confusion_matrix*.png
 classification_report*.txt
 confused_pairs*.txt
 .env/
+new/
+unconfirmed/
