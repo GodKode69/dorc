@@ -17,6 +17,7 @@ export default function Home() {
   const [view, setView] = useState<"classify" | "classes">("classify");
   const [classList, setClassList] = useState<ClassData[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/class_data.json").then((r) => r.json()).then(setClassList);
@@ -51,6 +52,19 @@ export default function Home() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImageSelect(file);
+          e.target.value = "";
+        }}
+        style={{ display: "none" }}
+      />
+      {/* Hidden camera input for "Click Another" */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleImageSelect(file);
@@ -167,6 +181,7 @@ export default function Home() {
       {/* Classify view */}
       {view === "classify" && (
         <div
+          className="classify-view"
           style={{
             flex: 1,
             display: "flex",
@@ -357,6 +372,50 @@ export default function Home() {
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
                   Upload Another
+                </button>
+
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  style={{
+                    marginTop: "0.5rem",
+                    width: "100%",
+                    padding: "0.65rem 1rem",
+                    borderRadius: "10px",
+                    border: "1px solid var(--border)",
+                    background: "var(--bg-surface)",
+                    color: "var(--text)",
+                    fontFamily: '"JetBrains Mono", monospace',
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                    transition: "border-color 0.2s ease, background 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--accent)";
+                    e.currentTarget.style.background = "var(--accent-dim)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border)";
+                    e.currentTarget.style.background = "var(--bg-surface)";
+                  }}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  Click Another
                 </button>
               </div>
             )}

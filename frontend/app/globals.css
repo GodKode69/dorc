@@ -77,9 +77,15 @@ body::before {
 @media (max-width: 640px) {
   .classify-layout {
     flex-direction: column !important;
+    gap: 0.75rem !important;
   }
   .classify-panel {
     flex: none !important;
-    min-height: 300px;
+    min-height: 0 !important;
+    max-height: 38vh;
+  }
+  .classify-view {
+    padding-top: 4.5rem !important;
+    padding-bottom: 1rem !important;
   }
 }

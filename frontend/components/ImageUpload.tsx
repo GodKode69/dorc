@@ -12,16 +12,21 @@ interface ImageUploadProps {
 
 export interface ImageUploadHandle {
   triggerUpload: () => void;
+  triggerCamera: () => void;
 }
 
 const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
   function ImageUpload({ onImageSelect, preview, disabled = false, statusLabel, progress = 0 }, ref) {
-    const inputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
     const [dragActive, setDragActive] = useState(false);
 
     useImperativeHandle(ref, () => ({
       triggerUpload: () => {
-        if (!disabled) inputRef.current?.click();
+        if (!disabled) fileInputRef.current?.click();
+      },
+      triggerCamera: () => {
+        if (!disabled) cameraInputRef.current?.click();
       },
     }));
 
@@ -33,6 +38,12 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
       if (file && file.type.startsWith("image/")) onImageSelect(file);
     }, [onImageSelect, disabled]);
 
+    const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) onImageSelect(file);
+      e.target.value = "";
+    }, [onImageSelect]);
+
     const showProgress = disabled && statusLabel;
 
     return (
@@ -40,7 +51,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
         onDrop={handleDrop}
         onDragOver={(e) => { e.preventDefault(); if (!disabled) setDragActive(true); }}
         onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
-        onClick={() => !disabled && !preview && inputRef.current?.click()}
+        onClick={() => !disabled && !preview && fileInputRef.current?.click()}
         className={dragActive ? "drag-active" : ""}
         style={{
           border: `1.5px dashed ${dragActive ? "var(--accent)" : "var(--border)"}`,
@@ -60,13 +71,19 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
         }}
       >
         <input
-          ref={inputRef}
+          ref={fileInputRef}
           type="file"
           accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onImageSelect(file);
-          }}
+          onChange={handleFile}
+          style={{ display: "none" }}
+          disabled={disabled}
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFile}
           style={{ display: "none" }}
           disabled={disabled}
         />
@@ -109,9 +126,48 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(
               fontFamily: '"JetBrains Mono", monospace',
               fontSize: "0.68rem",
               color: "var(--text-dim)",
+              marginBottom: "0.75rem",
             }}>
               JPG &middot; PNG &middot; WebP
             </p>
+
+            {/* Camera button */}
+            {!disabled && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  cameraInputRef.current?.click();
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.4rem 0.9rem",
+                  borderRadius: "999px",
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  color: "var(--text-dim)",
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: "0.65rem",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--accent)";
+                  e.currentTarget.style.color = "var(--accent)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.color = "var(--text-dim)";
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                Take Photo
+              </button>
+            )}
           </>
         )}
 
