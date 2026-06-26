@@ -86,7 +86,7 @@ body::before {
   .classify-panel {
     flex: none !important;
     min-height: 0 !important;
-    max-height: 38vh;
+    max-height: none !important;
   }
   .classify-view {
     padding-top: 4.5rem !important;
