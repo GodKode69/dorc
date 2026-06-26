@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import * as ort from "onnxruntime-web";
 
-ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4;
+ort.env.wasm.numThreads = 1;
 ort.env.wasm.wasmPaths = "/";
 
 interface Prediction {

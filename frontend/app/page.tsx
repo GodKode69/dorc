@@ -1,14 +1,26 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import ImageUpload from "@/components/ImageUpload";
 import PredictionResult from "@/components/PredictionResult";
 import { useClassifier } from "@/lib/useClassifier";
 
+interface ClassData {
+  name: string;
+  image: string;
+}
+
 export default function Home() {
-  const { prediction, loading, error, modelReady, classify, reset } =
+  const { prediction, loading, error, modelReady, classify } =
     useClassifier();
   const [preview, setPreview] = useState<string | null>(null);
+  const [view, setView] = useState<"classify" | "classes">("classify");
+  const [classList, setClassList] = useState<ClassData[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/class_data.json").then((r) => r.json()).then(setClassList);
+  }, []);
 
   const handleImageSelect = useCallback(
     async (file: File) => {
@@ -19,11 +31,10 @@ export default function Home() {
   );
 
   const handleReset = useCallback(() => {
-    reset();
-    setPreview(null);
-  }, [reset]);
+    fileInputRef.current?.click();
+  }, []);
 
-  const hasResult = prediction || loading || error;
+  const hasResult = prediction || error;
 
   return (
     <div
@@ -35,207 +46,248 @@ export default function Home() {
         zIndex: 1,
       }}
     >
-      {/* Top bar */}
-      <header
+      {/* Hidden file input for "Upload Another" */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImageSelect(file);
+          e.target.value = "";
+        }}
+        style={{ display: "none" }}
+      />
+
+      {/* Dock navbars */}
+      <div
         style={{
+          position: "fixed",
+          top: "16px",
+          left: 0,
+          right: 0,
           display: "flex",
-          alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 2.5rem",
-          height: "52px",
-          borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
+          padding: "0 24px",
+          zIndex: 10,
+          pointerEvents: "none",
         }}
       >
-        <span
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontWeight: 700,
-            fontSize: "0.9rem",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          DORC
-        </span>
-        <span
-          style={{
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: "0.68rem",
-            color: "var(--text-dim)",
-            letterSpacing: "0.08em",
-          }}
-        >
-          108 CLASSES &middot; EFFICIENTNET-B0 &middot;{" "}
-          {modelReady ? "READY" : "LOADING MODEL..."}
-        </span>
-      </header>
-
-      {/* Main */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        {/* Left: Upload */}
+        {/* Left dock */}
         <div
           style={{
-            flex: hasResult ? "0 0 48%" : "1",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            padding: "0.5rem 1.25rem",
+            borderRadius: "999px",
+            background: "rgba(18, 18, 26, 0.8)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid var(--border)",
+            pointerEvents: "auto",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            DORC
+          </span>
+          <span
+            style={{
+              width: "1px",
+              height: "14px",
+              background: "var(--border)",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: "0.7rem",
+              color: "var(--text-dim)",
+            }}
+          >
+            Based on EfficientNet-B0
+          </span>
+        </div>
+
+        {/* Right dock */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.4rem 0.5rem",
+            borderRadius: "999px",
+            background: "rgba(18, 18, 26, 0.8)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid var(--border)",
+            pointerEvents: "auto",
+          }}
+        >
+          <button
+            onClick={() => setView("classify")}
+            style={{
+              padding: "0.35rem 1rem",
+              borderRadius: "999px",
+              border: "none",
+              background: view === "classify" ? "var(--accent-dim)" : "transparent",
+              color: view === "classify" ? "var(--accent)" : "var(--text-dim)",
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: "0.7rem",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
+            Classify
+          </button>
+          <button
+            onClick={() => setView("classes")}
+            style={{
+              padding: "0.35rem 1rem",
+              borderRadius: "999px",
+              border: "none",
+              background: view === "classes" ? "var(--accent-dim)" : "transparent",
+              color: view === "classes" ? "var(--accent)" : "var(--text-dim)",
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: "0.7rem",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
+            Classes
+          </button>
+        </div>
+      </div>
+
+      {/* Classify view */}
+      {view === "classify" && (
+        <div
+          style={{
+            flex: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "2rem",
-            transition: "flex 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
-            position: "relative",
+            padding: "5rem 2rem 2rem",
           }}
         >
-          <div style={{ width: "100%", maxWidth: "420px" }}>
-            {/* Label */}
-            <div
-              style={{
-                fontFamily: '"JetBrains Mono", monospace',
-                fontSize: "0.62rem",
-                color: "var(--text-dim)",
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-                marginBottom: "1rem",
-              }}
-            >
-              {hasResult ? "Input" : "Classify"}
-            </div>
-
-            <ImageUpload onImageSelect={handleImageSelect} disabled={loading} />
-
-            {preview && (
-              <div
-                className="fade-in"
-                style={{
-                  marginTop: "1rem",
-                  borderRadius: "12px",
-                  overflow: "hidden",
-                  border: "1px solid var(--border)",
-                  background: "var(--bg-surface)",
-                  aspectRatio: "16/10",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <img
-                  src={preview}
-                  alt="Preview"
-                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                />
-              </div>
-            )}
-
-            {!hasResult && (
-              <div
-                style={{
-                  marginTop: "2rem",
-                  textAlign: "center",
-                  fontFamily: '"Inter", sans-serif',
-                  fontSize: "0.8rem",
-                  color: "var(--text-dim)",
-                  lineHeight: 1.6,
-                }}
-              >
-                Drop any image to classify it into one of 108 species.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Results */}
-        {hasResult && (
           <div
-            className="slide-in"
             style={{
-              flex: "0 0 52%",
-              borderLeft: "1px solid var(--border)",
               display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
+              gap: "1.5rem",
+              width: "100%",
+              maxWidth: "900px",
+              alignItems: "stretch",
             }}
           >
+            {/* Left popup: Upload / Image */}
             <div
               style={{
-                padding: "1.5rem 2rem",
-                borderBottom: "1px solid var(--border)",
+                flex: 1,
+                minWidth: 0,
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexShrink: 0,
+                flexDirection: "column",
               }}
             >
-              <span
-                style={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: "0.62rem",
-                  color: "var(--text-dim)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.15em",
-                }}
-              >
-                Output
-              </span>
-              {loading && (
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-                >
+              {!hasResult ? (
+                <>
+                  <ImageUpload
+                    onImageSelect={handleImageSelect}
+                    disabled={loading}
+                  />
                   <div
                     style={{
-                      width: 12,
-                      height: 12,
-                      border: "1.5px solid var(--border)",
-                      borderTopColor: "var(--accent)",
-                      borderRadius: "50%",
-                    }}
-                    className="animate-spin"
-                  />
-                  <span
-                    style={{
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontSize: "0.65rem",
-                      color: "var(--accent)",
+                      marginTop: "1.5rem",
+                      textAlign: "center",
+                      fontFamily: '"Inter", sans-serif',
+                      fontSize: "0.8rem",
+                      color: "var(--text-dim)",
+                      lineHeight: 1.6,
                     }}
                   >
-                    Processing
-                  </span>
+                    Drop any image to classify it into one of 108 species.
+                  </div>
+                </>
+              ) : (
+                <div
+                  className="pop-in"
+                  style={{
+                    borderRadius: "14px",
+                    background: "rgba(18, 18, 26, 0.95)",
+                    backdropFilter: "blur(16px)",
+                    border: "1px solid var(--border)",
+                    overflow: "hidden",
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {preview && (
+                    <img
+                      src={preview}
+                      alt="Uploaded"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
+                    />
+                  )}
                 </div>
               )}
             </div>
 
-            <div
-              style={{ flex: 1, overflow: "auto", padding: "1.5rem 2rem" }}
-            >
-              {error && (
-                <div
-                  className="fade-in"
-                  style={{
-                    padding: "1rem 1.25rem",
-                    borderRadius: "10px",
-                    background: "rgba(248, 113, 113, 0.08)",
-                    border: "1px solid rgba(248, 113, 113, 0.15)",
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: "0.78rem",
-                    color: "var(--red)",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-              {prediction && <PredictionResult prediction={prediction} />}
+            {/* Right popup: Results */}
+            {hasResult && (
+              <div
+                className="pop-in"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  borderRadius: "14px",
+                  background: "rgba(18, 18, 26, 0.95)",
+                  backdropFilter: "blur(16px)",
+                  border: "1px solid var(--border)",
+                  padding: "1.75rem",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {error && (
+                  <div
+                    style={{
+                      padding: "0.75rem 1rem",
+                      borderRadius: "10px",
+                      background: "rgba(248, 113, 113, 0.08)",
+                      border: "1px solid rgba(248, 113, 113, 0.15)",
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: "0.78rem",
+                      color: "var(--red)",
+                      marginBottom: "0.75rem",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+                {prediction && <PredictionResult prediction={prediction} />}
 
-              {(prediction || error) && (
                 <button
                   onClick={handleReset}
-                  className="fade-in"
                   style={{
-                    marginTop: "1.5rem",
+                    marginTop: "1.25rem",
                     width: "100%",
-                    padding: "0.75rem 1rem",
+                    padding: "0.65rem 1rem",
                     borderRadius: "10px",
                     border: "1px solid var(--border)",
                     background: "var(--bg-surface)",
                     color: "var(--text)",
                     fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: "0.78rem",
+                    fontSize: "0.75rem",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
@@ -253,8 +305,8 @@ export default function Home() {
                   }}
                 >
                   <svg
-                    width="14"
-                    height="14"
+                    width="13"
+                    height="13"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="var(--accent)"
@@ -268,11 +320,106 @@ export default function Home() {
                   </svg>
                   Upload Another
                 </button>
-              )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Classes view */}
+      {view === "classes" && (
+        <div
+          className="fade-in"
+          style={{
+            flex: 1,
+            overflow: "auto",
+            padding: "5rem 2rem 2rem",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "1100px",
+              margin: "0 auto",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: "0.62rem",
+                color: "var(--text-dim)",
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+                marginBottom: "1.5rem",
+              }}
+            >
+              {classList.length} Classes
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                gap: "0.75rem",
+              }}
+            >
+              {classList.map((cls) => (
+                <div
+                  key={cls.name}
+                  style={{
+                    borderRadius: "10px",
+                    border: "1px solid var(--border)",
+                    background: "var(--bg-surface)",
+                    overflow: "hidden",
+                    cursor: "default",
+                    transition: "border-color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "var(--accent)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)";
+                  }}
+                >
+                  <div
+                    style={{
+                      aspectRatio: "1",
+                      background: "var(--bg-elevated)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <img
+                      src={cls.image}
+                      alt={cls.name}
+                      loading="lazy"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      padding: "0.5rem 0.6rem",
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: "0.65rem",
+                      fontWeight: 500,
+                      textTransform: "capitalize",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {cls.name.replace(/_/g, " ")}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

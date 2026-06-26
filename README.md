@@ -2,6 +2,10 @@
 
 DorC is an open source image classification model. It is built with PyTorch transfer learning with EfficientNet-B0 backbone with CLIP zero-shot classification for data curation and image scraping.
 
+### Preview
+
+![Preview](preview.png)
+
 ## Classes
 
 **108 trained classes** with 60,000+ images across mammals, birds, reptiles, insects, fish, and marine animals.
@@ -92,13 +96,19 @@ model_1/
 │   ├── new/                 # Scraped images confirmed by model
 │   ├── unconfirmed/         # Scraped images where CLIP and model disagree
 │   └── untrained/           # Classes below MIN_IMAGES threshold
-├── api/                   # ONNX model for web API
-│   ├── model.onnx           # ONNX model (~16MB)
-│   └── classes.json         # Class names array
 ├── reports/               # Generated evaluation reports
-├── frontend/              # Next.js web interface
+├── frontend/              # Next.js web interface (client-side ONNX inference)
+│   ├── public/
+│   │   ├── model.onnx       # ONNX model (~16MB)
+│   │   ├── classes.json     # Class names array
+│   │   ├── class_samples/   # One sample image per class
+│   │   └── ort-wasm-*.wasm  # ONNX WASM runtime
+│   ├── lib/useClassifier.ts # Client-side inference hook
+│   ├── components/          # React components
+│   └── app/                 # Pages and styles
 ├── env/                   # Python virtual environment
 ├── model.pt               # Trained weights + class_to_idx
+├── preview.png            # UI preview screenshot
 └── README.md
 ```
 
@@ -128,13 +138,12 @@ model_1/
 3. **Scrape** adds images via Bing with automatic deduplication (MD5 hash)
 4. **Filter** drops classes below 100 images to `img/untrained/`
 
-## Web API
+## Website
 
-The model is deployed as an ONNX model on Vercel serverless functions:
+Client-side inference using `onnxruntime-web` (WASM)
 
-- **Endpoint:** `POST https://api.godkode.xyz/predict`
-- **Input:** Image (multipart/form-data or base64 JSON)
-- **Output:** `{ class: "wolf", confidence: 95.2, top5: [...] }`
+- **Frontend:** `Next.JS`
+- **Model:** `frontend/public/model.onnx`
 
 ## Results
 
