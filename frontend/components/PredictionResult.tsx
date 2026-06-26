@@ -10,64 +10,132 @@ interface PredictionResultProps {
   prediction: Prediction;
 }
 
-function getConfidenceColor(confidence: number): string {
-  if (confidence >= 80) return "bg-green-500";
-  if (confidence >= 50) return "bg-yellow-500";
-  return "bg-red-500";
+function barColor(c: number): string {
+  if (c >= 80) return "var(--green)";
+  if (c >= 50) return "var(--yellow)";
+  return "var(--red)";
 }
 
-function getConfidenceText(confidence: number): string {
-  if (confidence >= 80) return "High confidence";
-  if (confidence >= 50) return "Medium confidence";
-  return "Low confidence";
+function textColor(c: number): string {
+  if (c >= 80) return "var(--green)";
+  if (c >= 50) return "var(--yellow)";
+  return "var(--red)";
 }
 
 export default function PredictionResult({ prediction }: PredictionResultProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-        Prediction Result
-      </h2>
-
-      <div className="text-center mb-8">
-        <div className="inline-block">
-          <span className="text-5xl font-bold text-primary-600 capitalize">
-            {prediction.class}
+    <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Primary */}
+      <div>
+        <div style={{
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: "0.6rem",
+          color: "var(--text-dim)",
+          textTransform: "uppercase",
+          letterSpacing: "0.15em",
+          marginBottom: "0.5rem",
+        }}>
+          Detected
+        </div>
+        <div style={{
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: "clamp(1.8rem, 4vw, 3rem)",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "-0.03em",
+          lineHeight: 1,
+          marginBottom: "0.75rem",
+        }}>
+          {prediction.class.replace(/_/g, " ")}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <span style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            color: textColor(prediction.confidence),
+          }}>
+            {prediction.confidence.toFixed(1)}%
           </span>
-          <div className="mt-2">
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-sm font-medium text-white ${getConfidenceColor(prediction.confidence)}`}
-            >
-              {prediction.confidence.toFixed(1)}% -{" "}
-              {getConfidenceText(prediction.confidence)}
-            </span>
-          </div>
+          <span style={{
+            fontFamily: '"Inter", sans-serif',
+            fontSize: "0.75rem",
+            color: "var(--text-muted)",
+          }}>
+            confidence
+          </span>
         </div>
       </div>
 
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">
-          Top 5 Predictions
-        </h3>
+      {/* Divider */}
+      <div style={{ height: "1px", background: "var(--border)" }} />
 
-        <div className="space-y-3">
-          {prediction.top5.map((item, index) => (
-            <div key={item.class} className="flex items-center">
-              <span className="w-8 text-sm font-medium text-gray-500">
-                {index + 1}.
+      {/* Top 5 */}
+      <div>
+        <div style={{
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: "0.6rem",
+          color: "var(--text-dim)",
+          textTransform: "uppercase",
+          letterSpacing: "0.15em",
+          marginBottom: "0.75rem",
+        }}>
+          Top 5
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+          {prediction.top5.map((item, i) => (
+            <div key={item.class} className="fade-in" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              animationDelay: `${i * 0.05}s`,
+            }}>
+              <span style={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: "0.72rem",
+                color: "var(--text-dim)",
+                width: "1.5rem",
+                textAlign: "right",
+                flexShrink: 0,
+              }}>
+                {i + 1}
               </span>
-              <span className="w-32 text-sm font-medium text-gray-700 capitalize">
-                {item.class}
+              <span style={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: "0.78rem",
+                fontWeight: 500,
+                textTransform: "capitalize",
+                width: "110px",
+                flexShrink: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}>
+                {item.class.replace(/_/g, " ")}
               </span>
-              <div className="flex-1 mx-3">
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${getConfidenceColor(item.confidence)} transition-all duration-500`}
-                    style={{ width: `${item.confidence}%` }}
-                  />
-                </div>
+              <div style={{
+                flex: 1,
+                height: "6px",
+                background: "rgba(255,255,255,0.04)",
+                borderRadius: "999px",
+                overflow: "hidden",
+              }}>
+                <div className="bar-fill" style={{
+                  height: "100%",
+                  background: barColor(item.confidence),
+                  borderRadius: "999px",
+                  width: `${item.confidence}%`,
+                  animationDelay: `${0.3 + i * 0.08}s`,
+                }} />
               </div>
-              <span className="w-16 text-sm text-gray-600 text-right">
+              <span style={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: "0.72rem",
+                color: "var(--text-muted)",
+                width: "42px",
+                textAlign: "right",
+                flexShrink: 0,
+              }}>
                 {item.confidence.toFixed(1)}%
               </span>
             </div>

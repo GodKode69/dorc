@@ -1,97 +1,88 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 
 interface ImageUploadProps {
   onImageSelect: (file: File) => void;
   disabled?: boolean;
 }
 
-export default function ImageUpload({
-  onImageSelect,
-  disabled = false,
-}: ImageUploadProps) {
+export default function ImageUpload({ onImageSelect, disabled = false }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      if (disabled) return;
-
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith("image/")) {
-        onImageSelect(file);
-      }
-    },
-    [onImageSelect, disabled]
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-  }, []);
-
-  const handleClick = () => {
-    inputRef.current?.click();
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onImageSelect(file);
-    }
-  };
+    setDragActive(false);
+    if (disabled) return;
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) onImageSelect(file);
+  }, [onImageSelect, disabled]);
 
   return (
     <div
       onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onClick={handleClick}
-      className={`
-        border-2 border-dashed rounded-xl p-12 text-center cursor-pointer
-        transition-all duration-200
-        ${
-          disabled
-            ? "border-gray-200 bg-gray-50 cursor-not-allowed"
-            : "border-gray-300 hover:border-primary-400 hover:bg-primary-50"
-        }
-      `}
+      onDragOver={(e) => { e.preventDefault(); if (!disabled) setDragActive(true); }}
+      onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+      onClick={() => !disabled && inputRef.current?.click()}
+      className={dragActive ? "drag-active" : ""}
+      style={{
+        border: `1.5px dashed ${dragActive ? "var(--accent)" : "var(--border)"}`,
+        borderRadius: "14px",
+        padding: "2.5rem 1.5rem",
+        textAlign: "center",
+        cursor: disabled ? "not-allowed" : "pointer",
+        transition: "all 0.2s ease",
+        background: dragActive ? "var(--accent-dim)" : "var(--bg-surface)",
+        opacity: disabled ? 0.5 : 1,
+      }}
     >
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        onChange={handleChange}
-        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onImageSelect(file);
+        }}
+        style={{ display: "none" }}
         disabled={disabled}
       />
 
-      <div className="flex flex-col items-center">
-        <svg
-          className={`w-12 h-12 mb-4 ${disabled ? "text-gray-300" : "text-gray-400"}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
+      <div style={{
+        width: "48px",
+        height: "48px",
+        margin: "0 auto 1rem",
+        borderRadius: "12px",
+        background: "var(--accent-dim)",
+        border: "1px solid rgba(167, 139, 250, 0.15)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-
-        <p
-          className={`text-lg font-medium ${disabled ? "text-gray-400" : "text-gray-600"}`}
-        >
-          {disabled
-            ? "Analyzing..."
-            : "Drop an image here or click to upload"}
-        </p>
-
-        <p className="text-sm text-gray-400 mt-2">
-          Supports JPG, PNG, WebP
-        </p>
       </div>
+
+      <p style={{
+        fontFamily: '"Inter", sans-serif',
+        fontSize: "0.92rem",
+        fontWeight: 500,
+        color: dragActive ? "var(--accent)" : "var(--text)",
+        marginBottom: "0.3rem",
+      }}>
+        {disabled ? "Processing..." : dragActive ? "Drop to classify" : "Drop image or click to upload"}
+      </p>
+      <p style={{
+        fontFamily: '"JetBrains Mono", monospace',
+        fontSize: "0.68rem",
+        color: "var(--text-dim)",
+      }}>
+        JPG &middot; PNG &middot; WebP
+      </p>
     </div>
   );
 }
