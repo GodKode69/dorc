@@ -7,3 +7,5 @@ https://www.kaggle.com/datasets/aakashhaldankar/animal-image-dataset
 https://www.kaggle.com/datasets/asaniczka/mammals-image-classification-dataset-45-animals
 https://www.kaggle.com/datasets/rashikrahmanpritom/gender-recognition-dataset
 https://www.kaggle.com/datasets/snmahsa/human-images-dataset-men-and-women
+https://www.kaggle.com/datasets/vishweshsalodkar/wild-animals
+https://www.kaggle.com/datasets/projectlzp201910094/caterpillar640
