@@ -1,6 +1,5 @@
 model.pt
 data/
-untrained/
 classify_species.py
 __pycache__/
 *.pyc
