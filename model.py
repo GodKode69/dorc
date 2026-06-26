@@ -40,5 +40,8 @@ def load_backbone_weights(model, checkpoint_path):
 
     model.load_state_dict(backbone_state, strict=False)
     print(f"Loaded {len(backbone_state)} backbone layers from {checkpoint_path}")
-    print(f"Skipped {len(skipped)} classifier layers (output size changed)")
+    if skipped:
+        print(f"Skipped {len(skipped)} classifier layers (output size changed):")
+        for k in skipped:
+            print(f"  - {k}")
     return model

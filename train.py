@@ -59,6 +59,7 @@ def validate(model, loader, criterion, device):
 
 def main():
     incremental = "--increment" in sys.argv
+    training_start = time.time()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -125,7 +126,11 @@ def main():
                 print(f"\nEarly stopping at epoch {epoch} (no improvement for {config.EARLY_STOP_PATIENCE} epochs)")
                 break
 
+    total_time = time.time() - training_start
+    hours, remainder = divmod(total_time, 3600)
+    minutes, seconds = divmod(remainder, 60)
     print(f"\nTraining complete. Best val accuracy: {best_val_acc:.2f}%")
+    print(f"Total time: {int(hours)}h {int(minutes)}m {int(seconds)}s")
     print(f"Model saved to {config.MODEL_SAVE_PATH}")
 
 
