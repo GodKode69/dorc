@@ -7,4 +7,5 @@ node_modules/
 .next/
 out/
 *.onnx
+!frontend/public/model.onnx
 model.pt
