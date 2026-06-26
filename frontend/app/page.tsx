@@ -481,7 +481,7 @@ export default function Home() {
           }}
         >
           <span style={{ color: "var(--accent)", fontWeight: 500 }}>First visit?</span>{" "}
-          The model (~66MB) is being downloaded and compiled. This only happens once — it will be cached for future visits.
+          The model (~29MB) is being downloaded and compiled. This only happens once — it will be cached for future visits.
         </div>
       )}
     </div>

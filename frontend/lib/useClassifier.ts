@@ -27,7 +27,7 @@ let classNamesPromise: Promise<string[]> | null = null;
 
 function getOrt(onStatus?: (s: Status) => void) {
   if (!ortPromise) {
-    ortPromise = import("onnxruntime-web/webgpu").then((ort) => {
+    ortPromise = import("onnxruntime-web/wasm").then((ort) => {
       onStatus?.("compiling_wasm");
       ort.env.wasm.numThreads = 1;
       ort.env.wasm.wasmPaths = "/";
@@ -42,7 +42,7 @@ async function getSession(onStatus?: (s: Status) => void) {
     sessionPromise = getOrt(onStatus).then((ort) => {
       onStatus?.("loading_model");
       return ort.InferenceSession.create("/model.onnx", {
-        executionProviders: ["webgpu", "wasm"],
+        executionProviders: ["wasm"],
       });
     });
   }
