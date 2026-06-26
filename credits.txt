@@ -1,0 +1,9 @@
+https://www.kaggle.com/datasets/vencerlanz09/sea-animals-image-dataste
+https://www.kaggle.com/datasets/vencerlanz09/insect-village-synthetic-dataset
+https://www.kaggle.com/datasets/vencerlanz09/reptiles-and-amphibians-image-dataset
+https://www.kaggle.com/datasets/iamsouravbanerjee/animal-image-dataset-90-different-animals
+https://www.kaggle.com/datasets/adityasharma01/snake-dataset-india
+https://www.kaggle.com/datasets/aakashhaldankar/animal-image-dataset
+https://www.kaggle.com/datasets/asaniczka/mammals-image-classification-dataset-45-animals
+https://www.kaggle.com/datasets/rashikrahmanpritom/gender-recognition-dataset
+https://www.kaggle.com/datasets/snmahsa/human-images-dataset-men-and-women
