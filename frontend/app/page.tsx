@@ -17,7 +17,7 @@ export default function Home() {
   const [view, setView] = useState<"classify" | "classes">("classify");
   const [classList, setClassList] = useState<ClassData[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadRef = useRef<ImageUploadHandle>(null);
 
   useEffect(() => {
     fetch("/class_data.json").then((r) => r.json()).then(setClassList);
@@ -52,19 +52,6 @@ export default function Home() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleImageSelect(file);
-          e.target.value = "";
-        }}
-        style={{ display: "none" }}
-      />
-      {/* Hidden camera input for "Click Another" */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleImageSelect(file);
@@ -213,6 +200,7 @@ export default function Home() {
               {!hasResult ? (
                 <>
                   <ImageUpload
+                    ref={uploadRef}
                     onImageSelect={handleImageSelect}
                     disabled={isLoading}
                     statusLabel={statusLabel}
@@ -375,7 +363,7 @@ export default function Home() {
                 </button>
 
                 <button
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => uploadRef.current?.triggerCamera()}
                   style={{
                     marginTop: "0.5rem",
                     width: "100%",
