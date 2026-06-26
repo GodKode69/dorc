@@ -3,7 +3,26 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "DORC | Image Classifier",
-  description: "Image classifier powered by EfficientNet-B0 — 108 classes, ONNX Runtime.",
+  description: "An image classifier model based on EfficientNet-B0 — 108 classes, client-side ONNX inference.",
+  openGraph: {
+    title: "DORC | Image Classifier",
+    description: "An image classifier model based on EfficientNet-B0 — 108 classes, client-side ONNX inference.",
+    images: [
+      {
+        url: "/preview.png",
+        width: 1280,
+        height: 720,
+        alt: "DORC Image Classifier Preview",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DORC | Image Classifier",
+    description: "An image classifier model based on EfficientNet-B0 — 108 classes, client-side ONNX inference.",
+    images: ["/preview.png"],
+  },
 };
 
 export const viewport: Viewport = {

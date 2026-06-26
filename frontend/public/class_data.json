@@ -1,434 +1,434 @@
 [
   {
     "name": "alpaca",
-    "image": "/class_samples/alpaca.jpg"
+    "image": "/class_samples/alpaca.webp"
   },
   {
     "name": "anteater",
-    "image": "/class_samples/anteater.jpg"
+    "image": "/class_samples/anteater.webp"
   },
   {
     "name": "armadillo",
-    "image": "/class_samples/armadillo.jpg"
+    "image": "/class_samples/armadillo.webp"
   },
   {
     "name": "baboon",
-    "image": "/class_samples/baboon.jpg"
+    "image": "/class_samples/baboon.webp"
   },
   {
     "name": "badger",
-    "image": "/class_samples/badger.jpg"
+    "image": "/class_samples/badger.webp"
   },
   {
     "name": "bat",
-    "image": "/class_samples/bat.jpg"
+    "image": "/class_samples/bat.webp"
   },
   {
     "name": "bear",
-    "image": "/class_samples/bear.jpg"
+    "image": "/class_samples/bear.webp"
   },
   {
     "name": "bee",
-    "image": "/class_samples/bee.jpg"
+    "image": "/class_samples/bee.webp"
   },
   {
     "name": "beetle",
-    "image": "/class_samples/beetle.jpg"
+    "image": "/class_samples/beetle.webp"
   },
   {
     "name": "bison",
-    "image": "/class_samples/bison.jpg"
+    "image": "/class_samples/bison.webp"
   },
   {
     "name": "butterfly",
-    "image": "/class_samples/butterfly.jpg"
+    "image": "/class_samples/butterfly.webp"
   },
   {
     "name": "camel",
-    "image": "/class_samples/camel.jpg"
+    "image": "/class_samples/camel.webp"
   },
   {
     "name": "cardinal",
-    "image": "/class_samples/cardinal.jpg"
+    "image": "/class_samples/cardinal.webp"
   },
   {
     "name": "cat",
-    "image": "/class_samples/cat.jpg"
+    "image": "/class_samples/cat.webp"
   },
   {
     "name": "caterpillar",
-    "image": "/class_samples/caterpillar.jpg"
+    "image": "/class_samples/caterpillar.webp"
   },
   {
     "name": "chameleon",
-    "image": "/class_samples/chameleon.jpg"
+    "image": "/class_samples/chameleon.webp"
   },
   {
     "name": "chimpanzee",
-    "image": "/class_samples/chimpanzee.jpg"
+    "image": "/class_samples/chimpanzee.webp"
   },
   {
     "name": "cicada",
-    "image": "/class_samples/cicada.jpg"
+    "image": "/class_samples/cicada.webp"
   },
   {
     "name": "clams",
-    "image": "/class_samples/clams.jpg"
+    "image": "/class_samples/clams.webp"
   },
   {
     "name": "cockroach",
-    "image": "/class_samples/cockroach.jpg"
+    "image": "/class_samples/cockroach.webp"
   },
   {
     "name": "corals",
-    "image": "/class_samples/corals.jpg"
+    "image": "/class_samples/corals.webp"
   },
   {
     "name": "cow",
-    "image": "/class_samples/cow.jpg"
+    "image": "/class_samples/cow.webp"
   },
   {
     "name": "crab",
-    "image": "/class_samples/crab.jpg"
+    "image": "/class_samples/crab.webp"
   },
   {
     "name": "crocodile",
-    "image": "/class_samples/crocodile.jpg"
+    "image": "/class_samples/crocodile.webp"
   },
   {
     "name": "crow",
-    "image": "/class_samples/crow.jpg"
+    "image": "/class_samples/crow.webp"
   },
   {
     "name": "deer",
-    "image": "/class_samples/deer.jpg"
+    "image": "/class_samples/deer.webp"
   },
   {
     "name": "dog",
-    "image": "/class_samples/dog.jpg"
+    "image": "/class_samples/dog.webp"
   },
   {
     "name": "dolphin",
-    "image": "/class_samples/dolphin.jpg"
+    "image": "/class_samples/dolphin.webp"
   },
   {
     "name": "dragonfly",
-    "image": "/class_samples/dragonfly.jpg"
+    "image": "/class_samples/dragonfly.webp"
   },
   {
     "name": "duck",
-    "image": "/class_samples/duck.jpg"
+    "image": "/class_samples/duck.webp"
   },
   {
     "name": "eagle",
-    "image": "/class_samples/eagle.jpg"
+    "image": "/class_samples/eagle.webp"
   },
   {
     "name": "eel",
-    "image": "/class_samples/eel.jpg"
+    "image": "/class_samples/eel.webp"
   },
   {
     "name": "elephant",
-    "image": "/class_samples/elephant.jpg"
+    "image": "/class_samples/elephant.webp"
   },
   {
     "name": "finch",
-    "image": "/class_samples/finch.jpg"
+    "image": "/class_samples/finch.webp"
   },
   {
     "name": "fish",
-    "image": "/class_samples/fish.jpg"
+    "image": "/class_samples/fish.webp"
   },
   {
     "name": "flamingo",
-    "image": "/class_samples/flamingo.jpg"
+    "image": "/class_samples/flamingo.webp"
   },
   {
     "name": "fly",
-    "image": "/class_samples/fly.jpg"
+    "image": "/class_samples/fly.webp"
   },
   {
     "name": "fox",
-    "image": "/class_samples/fox.jpg"
+    "image": "/class_samples/fox.webp"
   },
   {
     "name": "frog",
-    "image": "/class_samples/frog.jpg"
+    "image": "/class_samples/frog.webp"
   },
   {
     "name": "gecko",
-    "image": "/class_samples/gecko.jpg"
+    "image": "/class_samples/gecko.webp"
   },
   {
     "name": "giraffe",
-    "image": "/class_samples/giraffe.jpg"
+    "image": "/class_samples/giraffe.webp"
   },
   {
     "name": "goat",
-    "image": "/class_samples/goat.jpg"
+    "image": "/class_samples/goat.webp"
   },
   {
     "name": "goose",
-    "image": "/class_samples/goose.jpg"
+    "image": "/class_samples/goose.webp"
   },
   {
     "name": "grasshopper",
-    "image": "/class_samples/grasshopper.jpg"
+    "image": "/class_samples/grasshopper.webp"
   },
   {
     "name": "groundhog",
-    "image": "/class_samples/groundhog.jpg"
+    "image": "/class_samples/groundhog.webp"
   },
   {
     "name": "hare",
-    "image": "/class_samples/hare.jpg"
+    "image": "/class_samples/hare.webp"
   },
   {
     "name": "horse",
-    "image": "/class_samples/horse.jpg"
+    "image": "/class_samples/horse.webp"
   },
   {
     "name": "iguana",
-    "image": "/class_samples/iguana.jpg"
+    "image": "/class_samples/iguana.webp"
   },
   {
     "name": "jackal",
-    "image": "/class_samples/jackal.jpg"
+    "image": "/class_samples/jackal.webp"
   },
   {
     "name": "jellyfish",
-    "image": "/class_samples/jellyfish.jpg"
+    "image": "/class_samples/jellyfish.webp"
   },
   {
     "name": "kangaroo",
-    "image": "/class_samples/kangaroo.jpg"
+    "image": "/class_samples/kangaroo.webp"
   },
   {
     "name": "koala",
-    "image": "/class_samples/koala.jpg"
+    "image": "/class_samples/koala.webp"
   },
   {
     "name": "leopard",
-    "image": "/class_samples/leopard.jpg"
+    "image": "/class_samples/leopard.webp"
   },
   {
     "name": "lion",
-    "image": "/class_samples/lion.jpg"
+    "image": "/class_samples/lion.webp"
   },
   {
     "name": "lizard",
-    "image": "/class_samples/lizard.jpg"
+    "image": "/class_samples/lizard.webp"
   },
   {
     "name": "lobster",
-    "image": "/class_samples/lobster.jpg"
+    "image": "/class_samples/lobster.webp"
   },
   {
     "name": "man",
-    "image": "/class_samples/man.jpg"
+    "image": "/class_samples/man.webp"
   },
   {
     "name": "manatee",
-    "image": "/class_samples/manatee.jpg"
+    "image": "/class_samples/manatee.webp"
   },
   {
     "name": "mongoose",
-    "image": "/class_samples/mongoose.jpg"
+    "image": "/class_samples/mongoose.webp"
   },
   {
     "name": "moth",
-    "image": "/class_samples/moth.jpg"
+    "image": "/class_samples/moth.webp"
   },
   {
     "name": "mouse",
-    "image": "/class_samples/mouse.jpg"
+    "image": "/class_samples/mouse.webp"
   },
   {
     "name": "octopus",
-    "image": "/class_samples/octopus.jpg"
+    "image": "/class_samples/octopus.webp"
   },
   {
     "name": "okapi",
-    "image": "/class_samples/okapi.jpg"
+    "image": "/class_samples/okapi.webp"
   },
   {
     "name": "orangutan",
-    "image": "/class_samples/orangutan.jpg"
+    "image": "/class_samples/orangutan.webp"
   },
   {
     "name": "otter",
-    "image": "/class_samples/otter.jpg"
+    "image": "/class_samples/otter.webp"
   },
   {
     "name": "owl",
-    "image": "/class_samples/owl.jpg"
+    "image": "/class_samples/owl.webp"
   },
   {
     "name": "panda",
-    "image": "/class_samples/panda.jpg"
+    "image": "/class_samples/panda.webp"
   },
   {
     "name": "parrot",
-    "image": "/class_samples/parrot.jpg"
+    "image": "/class_samples/parrot.webp"
   },
   {
     "name": "penguin",
-    "image": "/class_samples/penguin.jpg"
+    "image": "/class_samples/penguin.webp"
   },
   {
     "name": "pig",
-    "image": "/class_samples/pig.jpg"
+    "image": "/class_samples/pig.webp"
   },
   {
     "name": "porcupine",
-    "image": "/class_samples/porcupine.jpg"
+    "image": "/class_samples/porcupine.webp"
   },
   {
     "name": "possum",
-    "image": "/class_samples/possum.jpg"
+    "image": "/class_samples/possum.webp"
   },
   {
     "name": "puffers",
-    "image": "/class_samples/puffers.jpg"
+    "image": "/class_samples/puffers.webp"
   },
   {
     "name": "rat",
-    "image": "/class_samples/rat.jpg"
+    "image": "/class_samples/rat.webp"
   },
   {
     "name": "rhinoceros",
-    "image": "/class_samples/rhinoceros.jpg"
+    "image": "/class_samples/rhinoceros.webp"
   },
   {
     "name": "robin",
-    "image": "/class_samples/robin.jpg"
+    "image": "/class_samples/robin.webp"
   },
   {
     "name": "salamander",
-    "image": "/class_samples/salamander.jpg"
+    "image": "/class_samples/salamander.webp"
   },
   {
     "name": "scorpion",
-    "image": "/class_samples/scorpion.jpg"
+    "image": "/class_samples/scorpion.webp"
   },
   {
     "name": "sea_rays",
-    "image": "/class_samples/sea_rays.jpg"
+    "image": "/class_samples/sea_rays.webp"
   },
   {
     "name": "sea_urchins",
-    "image": "/class_samples/sea_urchins.jpg"
+    "image": "/class_samples/sea_urchins.webp"
   },
   {
     "name": "seahorse",
-    "image": "/class_samples/seahorse.jpg"
+    "image": "/class_samples/seahorse.webp"
   },
   {
     "name": "seal",
-    "image": "/class_samples/seal.jpg"
+    "image": "/class_samples/seal.webp"
   },
   {
     "name": "seaslug",
-    "image": "/class_samples/seaslug.jpg"
+    "image": "/class_samples/seaslug.webp"
   },
   {
     "name": "shark",
-    "image": "/class_samples/shark.jpg"
+    "image": "/class_samples/shark.webp"
   },
   {
     "name": "sheep",
-    "image": "/class_samples/sheep.jpg"
+    "image": "/class_samples/sheep.webp"
   },
   {
     "name": "shrew",
-    "image": "/class_samples/shrew.jpg"
+    "image": "/class_samples/shrew.webp"
   },
   {
     "name": "shrimp",
-    "image": "/class_samples/shrimp.jpg"
+    "image": "/class_samples/shrimp.webp"
   },
   {
     "name": "snail",
-    "image": "/class_samples/snail.jpg"
+    "image": "/class_samples/snail.webp"
   },
   {
     "name": "snake",
-    "image": "/class_samples/snake.jpg"
+    "image": "/class_samples/snake.webp"
   },
   {
     "name": "spider",
-    "image": "/class_samples/spider.jpg"
+    "image": "/class_samples/spider.webp"
   },
   {
     "name": "squid",
-    "image": "/class_samples/squid.jpg"
+    "image": "/class_samples/squid.webp"
   },
   {
     "name": "squirrel",
-    "image": "/class_samples/squirrel.jpg"
+    "image": "/class_samples/squirrel.webp"
   },
   {
     "name": "starfish",
-    "image": "/class_samples/starfish.jpg"
+    "image": "/class_samples/starfish.webp"
   },
   {
     "name": "sugar_glider",
-    "image": "/class_samples/sugar_glider.jpg"
+    "image": "/class_samples/sugar_glider.webp"
   },
   {
     "name": "tapir",
-    "image": "/class_samples/tapir.jpg"
+    "image": "/class_samples/tapir.webp"
   },
   {
     "name": "tiger",
-    "image": "/class_samples/tiger.jpg"
+    "image": "/class_samples/tiger.webp"
   },
   {
     "name": "toad",
-    "image": "/class_samples/toad.jpg"
+    "image": "/class_samples/toad.webp"
   },
   {
     "name": "turtle",
-    "image": "/class_samples/turtle.jpg"
+    "image": "/class_samples/turtle.webp"
   },
   {
     "name": "vicuna",
-    "image": "/class_samples/vicuna.jpg"
+    "image": "/class_samples/vicuna.webp"
   },
   {
     "name": "walrus",
-    "image": "/class_samples/walrus.jpg"
+    "image": "/class_samples/walrus.webp"
   },
   {
     "name": "weasel",
-    "image": "/class_samples/weasel.jpg"
+    "image": "/class_samples/weasel.webp"
   },
   {
     "name": "whale",
-    "image": "/class_samples/whale.jpg"
+    "image": "/class_samples/whale.webp"
   },
   {
     "name": "wolf",
-    "image": "/class_samples/wolf.jpg"
+    "image": "/class_samples/wolf.webp"
   },
   {
     "name": "woman",
-    "image": "/class_samples/woman.jpg"
+    "image": "/class_samples/woman.webp"
   },
   {
     "name": "wombat",
-    "image": "/class_samples/wombat.jpg"
+    "image": "/class_samples/wombat.webp"
   },
   {
     "name": "woodpecker",
-    "image": "/class_samples/woodpecker.jpg"
+    "image": "/class_samples/woodpecker.webp"
   },
   {
     "name": "yak",
-    "image": "/class_samples/yak.jpg"
+    "image": "/class_samples/yak.webp"
   },
   {
     "name": "zebra",
-    "image": "/class_samples/zebra.jpg"
+    "image": "/class_samples/zebra.webp"
   }
 ]

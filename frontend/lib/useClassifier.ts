@@ -1,10 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import * as ort from "onnxruntime-web";
-
-ort.env.wasm.numThreads = 1;
-ort.env.wasm.wasmPaths = "/";
+import { useState, useCallback, useEffect } from "react";
 
 interface Prediction {
   class: string;
@@ -16,14 +12,28 @@ const MEAN = [0.485, 0.456, 0.406];
 const STD = [0.229, 0.224, 0.225];
 const IMG_SIZE = 224;
 
-let sessionPromise: Promise<ort.InferenceSession> | null = null;
+let ortPromise: Promise<typeof import("onnxruntime-web/webgpu")> | null = null;
+let sessionPromise: Promise<import("onnxruntime-web/webgpu").InferenceSession> | null = null;
 let classNamesPromise: Promise<string[]> | null = null;
 
-function getSession(): Promise<ort.InferenceSession> {
-  if (!sessionPromise) {
-    sessionPromise = ort.InferenceSession.create("/model.onnx", {
-      executionProviders: ["wasm"],
+function getOrt() {
+  if (!ortPromise) {
+    ortPromise = import("onnxruntime-web/webgpu").then((ort) => {
+      ort.env.wasm.numThreads = 1;
+      ort.env.wasm.wasmPaths = "/";
+      return ort;
     });
+  }
+  return ortPromise;
+}
+
+async function getSession() {
+  if (!sessionPromise) {
+    sessionPromise = getOrt().then((ort) =>
+      ort.InferenceSession.create("/model.onnx", {
+        executionProviders: ["webgpu", "wasm"],
+      })
+    );
   }
   return sessionPromise;
 }
@@ -35,7 +45,7 @@ function getClassNames(): Promise<string[]> {
   return classNamesPromise;
 }
 
-function preprocessImage(imageData: ImageData): ort.Tensor {
+async function preprocessImage(imageData: ImageData) {
   const { width, height, data } = imageData;
 
   const canvas = document.createElement("canvas");
@@ -71,6 +81,7 @@ function preprocessImage(imageData: ImageData): ort.Tensor {
     }
   }
 
+  const ort = await getOrt();
   return new ort.Tensor("float32", nchw, [1, 3, IMG_SIZE, IMG_SIZE]);
 }
 
@@ -129,7 +140,7 @@ export function useClassifier() {
 
     try {
       const imageData = await loadImageToImageData(file);
-      const tensor = preprocessImage(imageData);
+      const tensor = await preprocessImage(imageData);
 
       const [session, classNames] = await Promise.all([
         getSession(),
