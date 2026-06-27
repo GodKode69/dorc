@@ -61,6 +61,9 @@ def scrape_images(species, count, tmp_dir):
         storage={"root_dir": str(tmp_dir)},
         downloader_threads=4,
     )
+    crawler.downloader.session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    })
     crawler.crawl(
         keyword=f"{species} animal photo",
         max_num=count * 2,

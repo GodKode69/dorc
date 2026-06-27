@@ -9,3 +9,17 @@ https://www.kaggle.com/datasets/rashikrahmanpritom/gender-recognition-dataset
 https://www.kaggle.com/datasets/snmahsa/human-images-dataset-men-and-women
 https://www.kaggle.com/datasets/vishweshsalodkar/wild-animals
 https://www.kaggle.com/datasets/projectlzp201910094/caterpillar640
+https://www.kaggle.com/datasets/khushikhushikhushi/dog-breed-image-dataset
+https://www.kaggle.com/datasets/gpiosenka/70-dog-breedsimage-data-set
+https://www.kaggle.com/datasets/chetankv/dogs-cats-images
+https://www.kaggle.com/datasets/ashfakyeafi/cat-dog-images-for-classification
+https://www.kaggle.com/datasets/danielshanbalico/dog-emotion
+https://www.kaggle.com/datasets/sameeharahman/preprocessed-snake-images
+https://www.kaggle.com/datasets/cookiemonsteryum/turtles?select=turtles32.sav
+https://www.kaggle.com/datasets/abbymorgan/penguins-vs-turtles
+https://www.kaggle.com/datasets/hariharanalm/dolphin-vs-whale
+https://www.kaggle.com/datasets/maricinnamon/caltech101-butterfly-dalmatian-dolphin
+https://www.kaggle.com/datasets/ismail703/marine-animals-dataset
+https://www.kaggle.com/datasets/andrea2727/dataset-of-aquatic-animals
+https://www.kaggle.com/datasets/davemahony/20-uk-garden-birds
+https://www.kaggle.com/datasets/elvinrustam/a-dataset-of-bird-species
