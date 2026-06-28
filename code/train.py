@@ -148,6 +148,9 @@ def main():
         loadBackboneWeights(model, config.modelSavePath)
         numEpochs = incrementEpochs
         currentLr = incrementLr
+    elif resume:
+        numEpochs = config.epochs
+        currentLr = incrementLr
     else:
         numEpochs = config.epochs
         currentLr = config.lr
@@ -167,9 +170,12 @@ def main():
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.AdamW(trainable, lr=currentLr, weight_decay=config.weightDecay, fused=True)
 
-    schedulerWarmup = optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=config.warmupEpochs)
-    schedulerCosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs - config.warmupEpochs)
-    scheduler = optim.lr_scheduler.SequentialLR(optimizer, [schedulerWarmup, schedulerCosine], milestones=[config.warmupEpochs])
+    if resume:
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs)
+    else:
+        schedulerWarmup = optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=config.warmupEpochs)
+        schedulerCosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs - config.warmupEpochs)
+        scheduler = optim.lr_scheduler.SequentialLR(optimizer, [schedulerWarmup, schedulerCosine], milestones=[config.warmupEpochs])
 
     if resumeCheckpoint is not None:
         if "optimizer_state_dict" in resumeCheckpoint:
