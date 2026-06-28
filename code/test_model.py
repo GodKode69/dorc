@@ -44,7 +44,7 @@ def getClassCounts():
     return counts
 
 
-def testClass(model, className, idxToClass, transform, device, sampleSize):
+def testClass(model, className, idxToClass, transform, device, sampleSize, useBf16):
     classDir = Path(config.dataDir) / className
     images = [f for f in classDir.iterdir() if f.suffix.lower() in testExtensions]
     if not images:
@@ -55,11 +55,14 @@ def testClass(model, className, idxToClass, transform, device, sampleSize):
     results = []
     for imgPath in sample:
         image = Image.open(imgPath).convert("RGB")
-        tensor = transform(image).unsqueeze(0).to(device)
-        with torch.no_grad():
-            outputs = model(tensor)
-            probs = torch.softmax(outputs, dim=1)
-            confidence, predicted = probs.max(1)
+        tensor = transform(image).unsqueeze(0).to(device, non_blocking=True)
+        if tensor.dim() == 4:
+            tensor = tensor.to(memory_format=torch.channels_last)
+        with torch.inference_mode():
+            with torch.amp.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=useBf16):
+                outputs = model(tensor)
+                probs = torch.softmax(outputs, dim=1)
+                confidence, predicted = probs.max(1)
         predClass = idxToClass[predicted.item()]
         isCorrect = predClass == className
         if isCorrect:
@@ -71,6 +74,8 @@ def testClass(model, className, idxToClass, transform, device, sampleSize):
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+
+    useBf16 = device.type == "cuda" and torch.cuda.is_bf16_supported()
 
     model, classToIdx, idxToClass = loadModel(device)
     transform = getTransform()
@@ -96,7 +101,7 @@ def main():
         print(f"Testing: {clsName} — {label}")
         print(f"{'='*60}")
 
-        results = testClass(model, clsName, idxToClass, transform, device, sampleSize)
+        results = testClass(model, clsName, idxToClass, transform, device, sampleSize, useBf16)
         correct = sum(1 for _, _, _, c in results if c)
         totalCorrect += correct
         totalTested += len(results)

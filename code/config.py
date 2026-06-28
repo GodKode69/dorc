@@ -36,10 +36,12 @@ imgSize = 224
 batchSize = 384
 epochs = 30
 lr = 0.0003
+warmupEpochs = 3
 trainSplit = 0.8
 numWorkers = 8
 weightDecay = 0.01
 labelSmoothing = 0.1
+gradientClipNorm = 1.0
 earlyStopPatience = 7
 minImages = 100
 

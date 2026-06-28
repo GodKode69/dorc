@@ -18,42 +18,45 @@ def load_clip_model(device="auto"):
     return model, preprocess, device
 
 
-def classify_image(image_path, labels, model, preprocess, device):
-    text_tokens = clip.tokenize([f"a photo of a {label}" for label in labels]).to(device)
-    with torch.no_grad():
-        text_features = model.encode_text(text_tokens)
-        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+def precomputeTextFeatures(labels, model, device):
+    textTokens = clip.tokenize([f"a photo of a {label}" for label in labels]).to(device)
+    with torch.inference_mode():
+        textFeatures = model.encode_text(textTokens)
+        textFeatures = textFeatures / textFeatures.norm(dim=-1, keepdim=True)
+    return textFeatures
 
-    image = preprocess(Image.open(image_path).convert("RGB")).unsqueeze(0).to(device)
-    with torch.no_grad():
-        image_features = model.encode_image(image)
-        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-        similarities = (image_features @ text_features.T).softmax(dim=-1)
+
+def classifyImage(imagePath, textFeatures, labels, model, preprocess, device):
+    image = preprocess(Image.open(imagePath).convert("RGB")).unsqueeze(0).to(device)
+    with torch.inference_mode():
+        imageFeatures = model.encode_image(image)
+        imageFeatures = imageFeatures / imageFeatures.norm(dim=-1, keepdim=True)
+        similarities = (imageFeatures @ textFeatures.T).softmax(dim=-1)
 
     probs = similarities[0].cpu().numpy()
-    best_idx = probs.argmax()
-    return labels[best_idx], float(probs[best_idx]), {label: float(p) for label, p in zip(labels, probs)}
+    bestIdx = probs.argmax()
+    return labels[bestIdx], float(probs[bestIdx]), {label: float(p) for label, p in zip(labels, probs)}
 
 
-def classify_directory(source_dir, labels, model, preprocess, device):
-    image_files = sorted(
-        f for f in source_dir.iterdir()
+def classifyDirectory(sourceDir, textFeatures, labels, model, preprocess, device):
+    imageFiles = sorted(
+        f for f in sourceDir.iterdir()
         if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", ".bmp")
     )
 
     results = []
-    for img_path in tqdm(image_files, desc=f"Classifying {source_dir.name}"):
+    for imgPath in tqdm(imageFiles, desc=f"Classifying {sourceDir.name}"):
         try:
-            predicted, confidence, all_probs = classify_image(img_path, labels, model, preprocess, device)
+            predicted, confidence, allProbs = classifyImage(imgPath, textFeatures, labels, model, preprocess, device)
             results.append({
-                "file": img_path.name,
+                "file": imgPath.name,
                 "predicted": predicted,
                 "confidence": confidence,
-                "all_probs": all_probs,
+                "all_probs": allProbs,
             })
         except Exception as e:
             results.append({
-                "file": img_path.name,
+                "file": imgPath.name,
                 "predicted": "ERROR",
                 "confidence": 0.0,
                 "all_probs": {},
@@ -62,29 +65,29 @@ def classify_directory(source_dir, labels, model, preprocess, device):
     return results
 
 
-def move_files(results, source_dir, min_conf=0.25):
+def moveFiles(results, sourceDir, minConf=0.25):
     moved = 0
     for r in results:
         if r["predicted"] == "ERROR":
             continue
-        if r["predicted"] == source_dir.name:
+        if r["predicted"] == sourceDir.name:
             continue
-        if r["confidence"] < min_conf:
+        if r["confidence"] < minConf:
             continue
 
-        src = source_dir / r["file"]
-        dest_dir = config.dataDir / r["predicted"]
-        dest_dir.mkdir(exist_ok=True)
+        src = sourceDir / r["file"]
+        destDir = config.dataDir / r["predicted"]
+        destDir.mkdir(exist_ok=True)
 
-        dest = dest_dir / r["file"]
+        dest = destDir / r["file"]
         if dest.exists():
-            dest = dest_dir / f"{source_dir.name}_{r['file']}"
+            dest = destDir / f"{sourceDir.name}_{r['file']}"
         src.rename(dest)
         moved += 1
     return moved
 
 
-def print_summary(results, labels):
+def printSummary(results, labels):
     from collections import Counter
     counts = Counter(r["predicted"] for r in results if r["predicted"] != "ERROR")
     print(f"\n{'='*50}")
@@ -109,32 +112,34 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Show what would be moved without moving")
     args = parser.parse_args()
 
-    source_dir = args.source if args.source.is_absolute() else config.dataDir / args.source
-    if not source_dir.exists():
-        print(f"Error: {source_dir} does not exist")
+    sourceDir = args.source if args.source.is_absolute() else config.dataDir / args.source
+    if not sourceDir.exists():
+        print(f"Error: {sourceDir} does not exist")
         sys.exit(1)
 
     labels = [l.strip() for l in args.labels.split(",")]
-    print(f"Source: {source_dir}")
+    print(f"Source: {sourceDir}")
     print(f"Labels: {labels}")
     print(f"Device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
     print()
 
     model, preprocess, device = load_clip_model()
-    results = classify_directory(source_dir, labels, model, preprocess, device)
-    print_summary(results, labels)
+    textFeatures = precomputeTextFeatures(labels, model, device)
+    print(f"Pre-computed text features for {len(labels)} labels")
+    results = classifyDirectory(sourceDir, textFeatures, labels, model, preprocess, device)
+    printSummary(results, labels)
 
     if args.csv:
-        csv_path = Path(args.csv)
-        with open(csv_path, "w", newline="") as f:
+        csvPath = Path(args.csv)
+        with open(csvPath, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=["file", "predicted", "confidence"])
             writer.writeheader()
             for r in results:
                 writer.writerow({k: r[k] for k in ["file", "predicted", "confidence"]})
-        print(f"Results saved to {csv_path}")
+        print(f"Results saved to {csvPath}")
 
     if args.move or args.dry_run:
-        moved = move_files(results, source_dir, args.min_conf)
+        moved = moveFiles(results, sourceDir, args.min_conf)
         action = "Would move" if args.dry_run else "Moved"
         print(f"{action} {moved} images to other directories")
         if args.dry_run:

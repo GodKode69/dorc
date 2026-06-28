@@ -9,16 +9,20 @@ from torchvision import transforms
 import config
 from model import buildModel
 
+_cachedModel = None
+_cachedIdxToClass = None
+_cachedTransform = None
 
-def predict(imagePath):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def _ensureModelLoaded(device):
+    global _cachedModel, _cachedIdxToClass, _cachedTransform
+    if _cachedModel is not None:
+        return _cachedModel, _cachedIdxToClass, _cachedTransform
 
     checkpoint = torch.load(config.modelSavePath, map_location=device, weights_only=False)
     classToIdx = checkpoint["class_to_idx"]
     idxToClass = {v: k for k, v in classToIdx.items()}
-
-    stateDict = checkpoint["model_state_dict"]
-    stateDict = {k.replace("_orig_mod.", ""): v for k, v in stateDict.items()}
+    stateDict = {k.replace("_orig_mod.", ""): v for k, v in checkpoint["model_state_dict"].items()}
 
     model = buildModel(numClasses=len(classToIdx)).to(device)
     model.load_state_dict(stateDict)
@@ -30,13 +34,28 @@ def predict(imagePath):
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
 
-    image = Image.open(imagePath).convert("RGB")
-    tensor = transform(image).unsqueeze(0).to(device)
+    _cachedModel = model
+    _cachedIdxToClass = idxToClass
+    _cachedTransform = transform
+    return model, idxToClass, transform
 
-    with torch.no_grad():
-        outputs = model(tensor)
-        probs = torch.softmax(outputs, dim=1)
-        confidence, predicted = probs.max(1)
+
+def predict(imagePath):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    useBf16 = device.type == "cuda" and torch.cuda.is_bf16_supported()
+
+    model, idxToClass, transform = _ensureModelLoaded(device)
+
+    image = Image.open(imagePath).convert("RGB")
+    tensor = transform(image).unsqueeze(0).to(device, non_blocking=True)
+    if tensor.dim() == 4:
+        tensor = tensor.to(memory_format=torch.channels_last)
+
+    with torch.inference_mode():
+        with torch.amp.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=useBf16):
+            outputs = model(tensor)
+            probs = torch.softmax(outputs, dim=1)
+            confidence, predicted = probs.max(1)
 
     predictedClass = idxToClass[predicted.item()]
     confidencePct = confidence.item() * 100

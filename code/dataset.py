@@ -1,12 +1,34 @@
 import torch
+from PIL import Image
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Dataset
 from collections import Counter
 
 import config
 
 imagenetMean = [0.485, 0.456, 0.406]
 imagenetStd = [0.229, 0.224, 0.225]
+
+
+class TransformSubset(Dataset):
+    """Wraps a random_split subset so train/val get different transforms from the same dataset."""
+
+    def __init__(self, baseDataset, indices, transform):
+        self.samples = baseDataset.samples
+        self.indices = indices
+        self.transform = transform
+        self.classes = baseDataset.classes
+        self.classToIdx = baseDataset.classToIdx
+
+    def __getitem__(self, idx):
+        path, label = self.samples[self.indices[idx]]
+        img = Image.open(path).convert("RGB")
+        if self.transform:
+            img = self.transform(img)
+        return img, label
+
+    def __len__(self):
+        return len(self.indices)
 
 
 def getTransforms():
@@ -47,7 +69,7 @@ def filterDataset(dataset, minImages):
 def getDataloaders():
     trainTransform, valTransform = getTransforms()
 
-    fullDataset = datasets.ImageFolder(root=config.dataDir, transform=trainTransform)
+    fullDataset = datasets.ImageFolder(root=config.dataDir, transform=None)
     fullDataset = filterDataset(fullDataset, config.minImages)
     classToIdx = fullDataset.classToIdx
 
@@ -55,10 +77,12 @@ def getDataloaders():
     trainSize = int(config.trainSplit * total)
     valSize = total - trainSize
 
-    trainDataset, valDataset = torch.utils.data.random_split(fullDataset, [trainSize, valSize])
-    valFull = datasets.ImageFolder(root=config.dataDir, transform=valTransform)
-    valFull = filterDataset(valFull, config.minImages)
-    valDataset.dataset = valFull
+    indices = torch.randperm(total).tolist()
+    trainIndices = indices[:trainSize]
+    valIndices = indices[trainSize:]
+
+    trainDataset = TransformSubset(fullDataset, trainIndices, trainTransform)
+    valDataset = TransformSubset(fullDataset, valIndices, valTransform)
 
     trainLoader = DataLoader(
         trainDataset,
@@ -68,6 +92,7 @@ def getDataloaders():
         pin_memory=True,
         persistent_workers=True,
         prefetch_factor=4,
+        drop_last=True,
     )
     valLoader = DataLoader(
         valDataset,
@@ -83,7 +108,7 @@ def getDataloaders():
 
 def getFullDataloader():
     _, valTransform = getTransforms()
-    fullDataset = datasets.ImageFolder(root=config.dataDir, transform=valTransform)
+    fullDataset = datasets.ImageFolder(root=config.dataDir, transform=None)
     fullDataset = filterDataset(fullDataset, config.minImages)
     loader = DataLoader(
         fullDataset,
@@ -91,5 +116,7 @@ def getFullDataloader():
         shuffle=False,
         num_workers=config.numWorkers,
         pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=4,
     )
     return loader, fullDataset.classToIdx

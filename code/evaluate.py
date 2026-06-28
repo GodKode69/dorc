@@ -27,17 +27,24 @@ def evaluate(model, loader, device):
     allPreds = []
     allLabels = []
     allConfs = []
+    useBf16 = device.type == "cuda" and torch.cuda.is_bf16_supported()
 
-    with torch.no_grad():
+    with torch.inference_mode():
         for images, labels in loader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            probs = torch.softmax(outputs, dim=1)
+            images = images.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True)
+            if images.dim() == 4:
+                images = images.to(memory_format=torch.channels_last)
+
+            with torch.amp.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=useBf16):
+                outputs = model(images)
+                probs = torch.softmax(outputs, dim=1)
+
             confs, preds = probs.max(1)
 
             allPreds.extend(preds.cpu().numpy())
             allLabels.extend(labels.cpu().numpy())
-            allConfs.extend(confs.cpu().numpy())
+            allConfs.extend(confs.float().cpu().numpy())
 
     return np.array(allLabels), np.array(allPreds), np.array(allConfs)
 

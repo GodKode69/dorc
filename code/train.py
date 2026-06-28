@@ -1,5 +1,6 @@
 import time
 import sys
+import os
 
 import torch
 import torch.nn as nn
@@ -15,59 +16,58 @@ incrementEpochs = 15
 incrementBatchSize = 32
 
 
-def trainOneEpoch(model, loader, criterion, optimizer, device, scaler):
+def trainOneEpoch(model, loader, criterion, optimizer, device, useBf16):
     model.train()
-    runningLoss = 0.0
+    runningLoss = torch.tensor(0.0, device=device)
     correct = 0
     total = 0
 
     for images, labels in loader:
-        images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+        images = images.to(device, non_blocking=True)
+        labels = labels.to(device, non_blocking=True)
         if images.dim() == 4:
             images = images.to(memory_format=torch.channels_last)
 
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
 
-        with torch.amp.autocast(device_type=device.type, enabled=scaler is not None):
+        with torch.amp.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=useBf16):
             outputs = model(images)
             loss = criterion(outputs, labels)
+            del outputs
 
-        if scaler is not None:
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-        else:
-            loss.backward()
-            optimizer.step()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config.gradientClipNorm)
+        optimizer.step()
 
-        runningLoss += loss.item() * images.size(0)
-        _, predicted = outputs.max(1)
+        runningLoss += loss.detach() * images.size(0)
         total += labels.size(0)
-        correct += predicted.eq(labels).sum().item()
 
-    return runningLoss / total, 100.0 * correct / total
+    return runningLoss.item() / total
 
 
-def validate(model, loader, criterion, device):
+def validate(model, loader, criterion, device, useBf16):
     model.eval()
-    runningLoss = 0.0
+    runningLoss = torch.tensor(0.0, device=device)
     correct = 0
     total = 0
 
-    with torch.no_grad():
+    with torch.inference_mode():
         for images, labels in loader:
-            images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+            images = images.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True)
             if images.dim() == 4:
                 images = images.to(memory_format=torch.channels_last)
-            outputs = model(images)
-            loss = criterion(outputs, labels)
 
-            runningLoss += loss.item() * images.size(0)
+            with torch.amp.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=useBf16):
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+
+            runningLoss += loss * images.size(0)
             _, predicted = outputs.max(1)
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
 
-    return runningLoss / total, 100.0 * correct / total
+    return runningLoss.item() / total, 100.0 * correct / total
 
 
 def main():
@@ -77,9 +77,22 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
+    useBf16 = False
     if device.type == "cuda":
         torch.set_float32_matmul_precision("high")
         torch.backends.cudnn.benchmark = True
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+
+        if torch.cuda.is_bf16_supported():
+            useBf16 = True
+            print("AMP enabled (bfloat16)")
+
+        torch._inductor.config.epilogue_fusion = True
+        torch._inductor.config.shape_padding = True
+        torch._inductor.config.triton.cudagraphs = True
+
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
     if incremental:
         config.batchSize = incrementBatchSize
@@ -90,7 +103,7 @@ def main():
     print(f"Classes: {numClasses}")
     print(f"Train: {len(trainLoader.dataset)} images, Val: {len(valLoader.dataset)} images")
 
-    trainTargets = [trainLoader.dataset.dataset.samples[i][1] for i in trainLoader.dataset.indices]
+    trainTargets = [trainLoader.dataset.samples[i][1] for i in trainLoader.dataset.indices]
     classCounts = Counter(trainTargets)
     classWeights = torch.tensor(
         [len(trainTargets) / (numClasses * classCounts[i]) for i in range(numClasses)],
@@ -110,8 +123,8 @@ def main():
         currentLr = config.lr
 
     try:
-        model = torch.compile(model)
-        print("torch.compile enabled")
+        model = torch.compile(model, mode="reduce-overhead")
+        print("torch.compile enabled (reduce-overhead)")
     except Exception as e:
         print(f"torch.compile failed, continuing without: {e}")
 
@@ -123,11 +136,10 @@ def main():
 
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.AdamW(trainable, lr=currentLr, weight_decay=config.weightDecay, fused=True)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs)
 
-    scaler = torch.amp.GradScaler("cuda") if device.type == "cuda" else None
-    if scaler:
-        print("AMP enabled")
+    schedulerWarmup = optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=config.warmupEpochs)
+    schedulerCosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs - config.warmupEpochs)
+    scheduler = optim.lr_scheduler.SequentialLR(optimizer, [schedulerWarmup, schedulerCosine], milestones=[config.warmupEpochs])
 
     bestValAcc = 0.0
     patienceCounter = 0
@@ -135,15 +147,15 @@ def main():
     for epoch in range(1, numEpochs + 1):
         start = time.time()
 
-        trainLoss, trainAcc = trainOneEpoch(model, trainLoader, criterion, optimizer, device, scaler)
-        valLoss, valAcc = validate(model, valLoader, criterion, device)
+        trainLoss = trainOneEpoch(model, trainLoader, criterion, optimizer, device, useBf16)
+        valLoss, valAcc = validate(model, valLoader, criterion, device, useBf16)
         scheduler.step()
 
         elapsed = time.time() - start
         lrNow = optimizer.param_groups[0]["lr"]
         print(
             f"Epoch [{epoch}/{numEpochs}] "
-            f"Train Loss: {trainLoss:.4f} Acc: {trainAcc:.2f}% | "
+            f"Train Loss: {trainLoss:.4f} | "
             f"Val Loss: {valLoss:.4f} Acc: {valAcc:.2f}% | "
             f"LR: {lrNow:.6f} | Time: {elapsed:.1f}s"
         )
