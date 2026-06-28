@@ -47,7 +47,8 @@ def loadWeightMapFromMismatches():
 
 def trainOneEpoch(model, loader, criterion, optimizer, device, useBf16):
     model.train()
-    runningLoss = torch.tensor(0.0, device=device)
+    totalLoss = 0.0
+    totalSamples = 0
 
     for images, labels, weights in loader:
         images = images.to(device, non_blocking=True)
@@ -61,21 +62,23 @@ def trainOneEpoch(model, loader, criterion, optimizer, device, useBf16):
         with torch.amp.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=useBf16):
             outputs = model(images)
             perSampleLoss = criterion(outputs, labels)
-            loss = (perSampleLoss * weights).mean()
+            batchWeightedLoss = (perSampleLoss * weights).sum()
             del outputs
 
-        loss.backward()
+        batchWeightedLoss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config.gradientClipNorm)
         optimizer.step()
 
-        runningLoss += loss.detach() * images.size(0)
+        totalLoss += batchWeightedLoss.item()
+        totalSamples += weights.sum().item()
 
-    return runningLoss.item()
+    return totalLoss / totalSamples
 
 
 def validate(model, loader, criterion, device, useBf16):
     model.eval()
-    runningLoss = torch.tensor(0.0, device=device)
+    totalLoss = 0.0
+    totalSamples = 0
     correct = 0
     total = 0
 
@@ -90,12 +93,13 @@ def validate(model, loader, criterion, device, useBf16):
                 outputs = model(images)
                 loss = criterion(outputs, labels)
 
-            runningLoss += loss * images.size(0)
+            totalLoss += loss.sum().item()
+            totalSamples += images.size(0)
             _, predicted = outputs.max(1)
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
 
-    return runningLoss.item() / total, 100.0 * correct / total
+    return totalLoss / totalSamples, 100.0 * correct / total
 
 
 def saveCheckpoint(model, optimizer, scheduler, classToIdx, epoch, bestValAcc, patienceCounter):
