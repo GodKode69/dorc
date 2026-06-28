@@ -10,3 +10,4 @@ out/
 !frontend/public/model.onnx
 model.pt
 models/*.pt
+input/

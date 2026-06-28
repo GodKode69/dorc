@@ -1,3 +1,4 @@
+import csv
 import time
 import sys
 import os
@@ -18,15 +19,40 @@ incrementEpochs = 15
 incrementBatchSize = 32
 
 
+def loadWeightMapFromMismatches():
+    mismatchesPath = config.basePath / "reports" / "mismatches.csv"
+    if not mismatchesPath.exists():
+        print(f"No mismatch report found at {mismatchesPath}")
+        return None
+
+    weightMap = {}
+    with open(mismatchesPath, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            path = row["path"]
+            weightMap[path] = config.mismatchPenalty
+
+    agreePath = config.basePath / "reports" / "agreements.csv"
+    if agreePath.exists():
+        with open(agreePath, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                path = row["path"]
+                if path not in weightMap:
+                    weightMap[path] = 1.0
+
+    print(f"Weight map: {len(weightMap)} entries ({sum(1 for w in weightMap.values() if w < 1.0)} mismatched)")
+    return weightMap
+
+
 def trainOneEpoch(model, loader, criterion, optimizer, device, useBf16):
     model.train()
     runningLoss = torch.tensor(0.0, device=device)
-    correct = 0
-    total = 0
 
-    for images, labels in loader:
+    for images, labels, weights in loader:
         images = images.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
+        weights = weights.to(device, non_blocking=True)
         if images.dim() == 4:
             images = images.to(memory_format=torch.channels_last)
 
@@ -34,7 +60,8 @@ def trainOneEpoch(model, loader, criterion, optimizer, device, useBf16):
 
         with torch.amp.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=useBf16):
             outputs = model(images)
-            loss = criterion(outputs, labels)
+            perSampleLoss = criterion(outputs, labels)
+            loss = (perSampleLoss * weights).mean()
             del outputs
 
         loss.backward()
@@ -42,9 +69,8 @@ def trainOneEpoch(model, loader, criterion, optimizer, device, useBf16):
         optimizer.step()
 
         runningLoss += loss.detach() * images.size(0)
-        total += labels.size(0)
 
-    return runningLoss.item() / total
+    return runningLoss.item()
 
 
 def validate(model, loader, criterion, device, useBf16):
@@ -54,7 +80,7 @@ def validate(model, loader, criterion, device, useBf16):
     total = 0
 
     with torch.inference_mode():
-        for images, labels in loader:
+        for images, labels, weights in loader:
             images = images.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
             if images.dim() == 4:
@@ -89,6 +115,8 @@ def saveCheckpoint(model, optimizer, scheduler, classToIdx, epoch, bestValAcc, p
 def main():
     incremental = "--increment" in sys.argv
     resume = "--resume" in sys.argv
+    retrain = "--retrain" in sys.argv
+    verify = "--verify" in sys.argv
     trainingStart = time.time()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -115,7 +143,11 @@ def main():
         config.batchSize = incrementBatchSize
         print(f"Incremental batch size: {incrementBatchSize}")
 
-    trainLoader, valLoader, classToIdx = getDataloaders()
+    weightMap = None
+    if retrain:
+        weightMap = loadWeightMapFromMismatches()
+
+    trainLoader, valLoader, classToIdx = getDataloaders(weightMap=weightMap)
     numClasses = len(classToIdx)
     print(f"Classes: {numClasses}")
     print(f"Train: {len(trainLoader.dataset)} images, Val: {len(valLoader.dataset)} images")
@@ -126,6 +158,7 @@ def main():
         [len(trainTargets) / (numClasses * classCounts[i]) for i in range(numClasses)],
         dtype=torch.float,
     )
+    classWeights = classWeights ** config.weightBlend
 
     model = buildModel(numClasses=numClasses).to(device)
     if device.type == "cuda":
@@ -136,7 +169,7 @@ def main():
     patienceCounter = 0
     resumeCheckpoint = None
 
-    if resume:
+    if resume or retrain:
         resumeCheckpoint = torch.load(config.modelSavePath, map_location=device, weights_only=False)
         model.load_state_dict(resumeCheckpoint["model_state_dict"])
         startEpoch = resumeCheckpoint.get("epoch", 0) + 1
@@ -148,8 +181,8 @@ def main():
         loadBackboneWeights(model, config.modelSavePath)
         numEpochs = incrementEpochs
         currentLr = incrementLr
-    elif resume:
-        numEpochs = config.epochs
+    elif resume or retrain:
+        numEpochs = config.retrainEpochs if retrain else config.epochs
         currentLr = incrementLr
     else:
         numEpochs = config.epochs
@@ -170,7 +203,7 @@ def main():
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.AdamW(trainable, lr=currentLr, weight_decay=config.weightDecay, fused=True)
 
-    if resume:
+    if resume or retrain:
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs)
     else:
         schedulerWarmup = optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=config.warmupEpochs)
@@ -216,6 +249,10 @@ def main():
     print(f"\nTraining complete. Best val accuracy: {bestValAcc:.2f}%")
     print(f"Total time: {int(hours)}h {int(minutes)}m {int(seconds)}s")
     print(f"Model saved to {config.modelSavePath}")
+
+    if verify:
+        from clip_verify import verify
+        verify()
 
 
 if __name__ == "__main__":

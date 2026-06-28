@@ -13,19 +13,21 @@ imagenetStd = [0.229, 0.224, 0.225]
 class TransformSubset(Dataset):
     """Wraps a random_split subset so train/val get different transforms from the same dataset."""
 
-    def __init__(self, baseDataset, indices, transform):
+    def __init__(self, baseDataset, indices, transform, weightMap=None):
         self.samples = baseDataset.samples
         self.indices = indices
         self.transform = transform
         self.classes = baseDataset.classes
         self.classToIdx = baseDataset.classToIdx
+        self.weightMap = weightMap
 
     def __getitem__(self, idx):
         path, label = self.samples[self.indices[idx]]
         img = Image.open(path).convert("RGB")
         if self.transform:
             img = self.transform(img)
-        return img, label
+        weight = self.weightMap.get(path, 1.0) if self.weightMap else 1.0
+        return img, label, weight
 
     def __len__(self):
         return len(self.indices)
@@ -66,7 +68,7 @@ def filterDataset(dataset, minImages):
     return dataset
 
 
-def getDataloaders():
+def getDataloaders(weightMap=None):
     trainTransform, valTransform = getTransforms()
 
     fullDataset = datasets.ImageFolder(root=config.dataDir, transform=None)
@@ -81,7 +83,7 @@ def getDataloaders():
     trainIndices = indices[:trainSize]
     valIndices = indices[trainSize:]
 
-    trainDataset = TransformSubset(fullDataset, trainIndices, trainTransform)
+    trainDataset = TransformSubset(fullDataset, trainIndices, trainTransform, weightMap)
     valDataset = TransformSubset(fullDataset, valIndices, valTransform)
 
     trainLoader = DataLoader(
@@ -106,12 +108,12 @@ def getDataloaders():
     return trainLoader, valLoader, classToIdx
 
 
-def getFullDataloader():
+def getFullDataloader(weightMap=None):
     _, valTransform = getTransforms()
     fullDataset = datasets.ImageFolder(root=config.dataDir, transform=None)
     fullDataset = filterDataset(fullDataset, config.minImages)
     loader = DataLoader(
-        fullDataset,
+        TransformSubset(fullDataset, list(range(len(fullDataset))), valTransform, weightMap),
         batch_size=config.batchSize,
         shuffle=False,
         num_workers=config.numWorkers,

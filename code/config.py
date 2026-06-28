@@ -42,6 +42,9 @@ numWorkers = 8
 weightDecay = 0.01
 labelSmoothing = 0.1
 gradientClipNorm = 1.0
+weightBlend = 0.5
+mismatchPenalty = 0.1
+retrainEpochs = 15
 earlyStopPatience = 7
 minImages = 100
 
