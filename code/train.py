@@ -131,6 +131,19 @@ def main():
     if device.type == "cuda":
         model = model.to(memory_format=torch.channels_last)
 
+    startEpoch = 1
+    bestValAcc = 0.0
+    patienceCounter = 0
+    resumeCheckpoint = None
+
+    if resume:
+        resumeCheckpoint = torch.load(config.modelSavePath, map_location=device, weights_only=False)
+        model.load_state_dict(resumeCheckpoint["model_state_dict"])
+        startEpoch = resumeCheckpoint.get("epoch", 0) + 1
+        bestValAcc = resumeCheckpoint.get("best_val_acc", 0.0)
+        patienceCounter = resumeCheckpoint.get("patience_counter", 0)
+        print(f"Resumed from epoch {resumeCheckpoint.get('epoch', 0)} (best_val_acc: {bestValAcc:.2f}%, patience: {patienceCounter})")
+
     if incremental:
         loadBackboneWeights(model, config.modelSavePath)
         numEpochs = incrementEpochs
@@ -158,21 +171,11 @@ def main():
     schedulerCosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs - config.warmupEpochs)
     scheduler = optim.lr_scheduler.SequentialLR(optimizer, [schedulerWarmup, schedulerCosine], milestones=[config.warmupEpochs])
 
-    startEpoch = 1
-    bestValAcc = 0.0
-    patienceCounter = 0
-
-    if resume:
-        checkpoint = torch.load(config.modelSavePath, map_location=device, weights_only=False)
-        model.load_state_dict(checkpoint["model_state_dict"])
-        if "optimizer_state_dict" in checkpoint:
-            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        if "scheduler_state_dict" in checkpoint:
-            scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-        startEpoch = checkpoint.get("epoch", 0) + 1
-        bestValAcc = checkpoint.get("best_val_acc", 0.0)
-        patienceCounter = checkpoint.get("patience_counter", 0)
-        print(f"Resumed from epoch {checkpoint.get('epoch', 0)} (best_val_acc: {bestValAcc:.2f}%, patience: {patienceCounter})")
+    if resumeCheckpoint is not None:
+        if "optimizer_state_dict" in resumeCheckpoint:
+            optimizer.load_state_dict(resumeCheckpoint["optimizer_state_dict"])
+        if "scheduler_state_dict" in resumeCheckpoint:
+            scheduler.load_state_dict(resumeCheckpoint["scheduler_state_dict"])
 
     for epoch in range(startEpoch, numEpochs + 1):
         start = time.time()
