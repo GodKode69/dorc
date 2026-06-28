@@ -1,32 +1,36 @@
 import sys
 import json
+from pathlib import Path
 
 import torch
 from PIL import Image
 from torchvision import transforms
 
 import config
-from model import build_model
+from model import buildModel
 
 
-def predict(image_path):
+def predict(imagePath):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    checkpoint = torch.load(config.MODEL_SAVE_PATH, map_location=device, weights_only=False)
-    class_to_idx = checkpoint["class_to_idx"]
-    idx_to_class = {v: k for k, v in class_to_idx.items()}
+    checkpoint = torch.load(config.modelSavePath, map_location=device, weights_only=False)
+    classToIdx = checkpoint["class_to_idx"]
+    idxToClass = {v: k for k, v in classToIdx.items()}
 
-    model = build_model(num_classes=len(class_to_idx)).to(device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    stateDict = checkpoint["model_state_dict"]
+    stateDict = {k.replace("_orig_mod.", ""): v for k, v in stateDict.items()}
+
+    model = buildModel(numClasses=len(classToIdx)).to(device)
+    model.load_state_dict(stateDict)
     model.eval()
 
     transform = transforms.Compose([
-        transforms.Resize((config.IMG_SIZE, config.IMG_SIZE)),
+        transforms.Resize((config.imgSize, config.imgSize)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
 
-    image = Image.open(image_path).convert("RGB")
+    image = Image.open(imagePath).convert("RGB")
     tensor = transform(image).unsqueeze(0).to(device)
 
     with torch.no_grad():
@@ -34,11 +38,11 @@ def predict(image_path):
         probs = torch.softmax(outputs, dim=1)
         confidence, predicted = probs.max(1)
 
-    predicted_class = idx_to_class[predicted.item()]
-    confidence_pct = confidence.item() * 100
+    predictedClass = idxToClass[predicted.item()]
+    confidencePct = confidence.item() * 100
 
-    print(f"Prediction: {predicted_class} ({confidence_pct:.2f}%)")
-    return predicted_class, confidence_pct
+    print(f"Prediction: {predictedClass} ({confidencePct:.2f}%)")
+    return predictedClass, confidencePct
 
 
 if __name__ == "__main__":

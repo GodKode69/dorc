@@ -1,17 +1,17 @@
 import torch
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Subset
 from collections import Counter
 
 import config
 
-IMAGENET_MEAN = [0.485, 0.456, 0.406]
-IMAGENET_STD = [0.229, 0.224, 0.225]
+imagenetMean = [0.485, 0.456, 0.406]
+imagenetStd = [0.229, 0.224, 0.225]
 
 
-def get_transforms():
-    train_transform = transforms.Compose([
-        transforms.RandomResizedCrop(config.IMG_SIZE, scale=(0.7, 1.0)),
+def getTransforms():
+    trainTransform = transforms.Compose([
+        transforms.RandomResizedCrop(config.imgSize, scale=(0.7, 1.0)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(p=0.1),
         transforms.RandomRotation(20),
@@ -20,73 +20,76 @@ def get_transforms():
         transforms.RandomGrayscale(p=0.05),
         transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
         transforms.ToTensor(),
-        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+        transforms.Normalize(imagenetMean, imagenetStd),
         transforms.RandomErasing(p=0.2, scale=(0.02, 0.15)),
     ])
 
-    val_transform = transforms.Compose([
-        transforms.Resize(int(config.IMG_SIZE * 1.1)),
-        transforms.CenterCrop(config.IMG_SIZE),
+    valTransform = transforms.Compose([
+        transforms.Resize(int(config.imgSize * 1.1)),
+        transforms.CenterCrop(config.imgSize),
         transforms.ToTensor(),
-        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+        transforms.Normalize(imagenetMean, imagenetStd),
     ])
 
-    return train_transform, val_transform
+    return trainTransform, valTransform
 
 
-def _filter_dataset(dataset, min_images):
+def filterDataset(dataset, minImages):
     counts = Counter(cls for _, cls in dataset.samples)
-    keep_classes = sorted(cls for cls, count in counts.items() if count >= min_images)
-    class_map = {old: new for new, old in enumerate(keep_classes)}
-    dataset.samples = [(p, class_map[c]) for p, c in dataset.samples if c in class_map]
-    dataset.classes = [dataset.classes[i] for i in keep_classes]
-    dataset.class_to_idx = {name: i for i, name in enumerate(dataset.classes)}
+    keepClasses = sorted(cls for cls, count in counts.items() if count >= minImages)
+    classMap = {old: new for new, old in enumerate(keepClasses)}
+    dataset.samples = [(p, classMap[c]) for p, c in dataset.samples if c in classMap]
+    dataset.classes = [dataset.classes[i] for i in keepClasses]
+    dataset.classToIdx = {name: i for i, name in enumerate(dataset.classes)}
     return dataset
 
 
-def get_dataloaders():
-    train_transform, val_transform = get_transforms()
+def getDataloaders():
+    trainTransform, valTransform = getTransforms()
 
-    full_dataset = datasets.ImageFolder(root=config.DATA_DIR, transform=train_transform)
-    full_dataset = _filter_dataset(full_dataset, config.MIN_IMAGES)
-    class_to_idx = full_dataset.class_to_idx
+    fullDataset = datasets.ImageFolder(root=config.dataDir, transform=trainTransform)
+    fullDataset = filterDataset(fullDataset, config.minImages)
+    classToIdx = fullDataset.classToIdx
 
-    total = len(full_dataset)
-    train_size = int(config.TRAIN_SPLIT * total)
-    val_size = total - train_size
+    total = len(fullDataset)
+    trainSize = int(config.trainSplit * total)
+    valSize = total - trainSize
 
-    train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
-    val_full = datasets.ImageFolder(root=config.DATA_DIR, transform=val_transform)
-    val_full = _filter_dataset(val_full, config.MIN_IMAGES)
-    val_dataset.dataset = val_full
+    trainDataset, valDataset = torch.utils.data.random_split(fullDataset, [trainSize, valSize])
+    valFull = datasets.ImageFolder(root=config.dataDir, transform=valTransform)
+    valFull = filterDataset(valFull, config.minImages)
+    valDataset.dataset = valFull
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=config.BATCH_SIZE,
+    trainLoader = DataLoader(
+        trainDataset,
+        batch_size=config.batchSize,
         shuffle=True,
-        num_workers=config.NUM_WORKERS,
+        num_workers=config.numWorkers,
         pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=4,
     )
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=config.BATCH_SIZE,
+    valLoader = DataLoader(
+        valDataset,
+        batch_size=config.batchSize,
         shuffle=False,
-        num_workers=config.NUM_WORKERS,
+        num_workers=config.numWorkers,
         pin_memory=True,
+        persistent_workers=True,
     )
 
-    return train_loader, val_loader, class_to_idx
+    return trainLoader, valLoader, classToIdx
 
 
-def get_full_dataloader():
-    _, val_transform = get_transforms()
-    full_dataset = datasets.ImageFolder(root=config.DATA_DIR, transform=val_transform)
-    full_dataset = _filter_dataset(full_dataset, config.MIN_IMAGES)
+def getFullDataloader():
+    _, valTransform = getTransforms()
+    fullDataset = datasets.ImageFolder(root=config.dataDir, transform=valTransform)
+    fullDataset = filterDataset(fullDataset, config.minImages)
     loader = DataLoader(
-        full_dataset,
-        batch_size=config.BATCH_SIZE,
+        fullDataset,
+        batch_size=config.batchSize,
         shuffle=False,
-        num_workers=config.NUM_WORKERS,
+        num_workers=config.numWorkers,
         pin_memory=True,
     )
-    return loader, full_dataset.class_to_idx
+    return loader, fullDataset.classToIdx

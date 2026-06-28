@@ -1,13 +1,13 @@
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-IMG_DIR = BASE_DIR / "img"
-NEW_DIR = IMG_DIR / "new"
-UNCONFIRMED_DIR = IMG_DIR / "unconfirmed"
-UNTRAINED_DIR = IMG_DIR / "untrained"
+basePath = Path(__file__).resolve().parent.parent
+dataDir = basePath / "data"
+imgDir = basePath / "img"
+newDir = imgDir / "new"
+unconfirmedDir = imgDir / "unconfirmed"
+untrainedDir = imgDir / "untrained"
 
-CLASSES = [
+classes = [
     "alpaca", "anteater", "antelope", "armadillo", "baboon", "badger", "bat",
     "bear", "bee", "beetle", "bison", "blue_jay", "butterfly", "camel",
     "cardinal", "cat", "caterpillar", "chameleon", "cheetah", "chickadee",
@@ -30,17 +30,17 @@ CLASSES = [
     "weasel", "whale", "wolf", "wombat", "woodpecker", "wren", "yak",
     "zebra",
 ]
-NUM_CLASSES = len(CLASSES)
+numClasses = len(classes)
 
-IMG_SIZE = 224
-BATCH_SIZE = 64
-EPOCHS = 30
-LR = 0.0003
-TRAIN_SPLIT = 0.8
-NUM_WORKERS = 4
-WEIGHT_DECAY = 0.01
-LABEL_SMOOTHING = 0.1
-EARLY_STOP_PATIENCE = 7
-MIN_IMAGES = 100
+imgSize = 224
+batchSize = 384
+epochs = 30
+lr = 0.0003
+trainSplit = 0.8
+numWorkers = 8
+weightDecay = 0.01
+labelSmoothing = 0.1
+earlyStopPatience = 7
+minImages = 100
 
-MODEL_SAVE_PATH = BASE_DIR / "model.pt"
+modelSavePath = basePath / "model.pt"

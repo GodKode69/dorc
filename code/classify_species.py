@@ -73,7 +73,7 @@ def move_files(results, source_dir, min_conf=0.25):
             continue
 
         src = source_dir / r["file"]
-        dest_dir = config.DATA_DIR / r["predicted"]
+        dest_dir = config.dataDir / r["predicted"]
         dest_dir.mkdir(exist_ok=True)
 
         dest = dest_dir / r["file"]
@@ -109,7 +109,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Show what would be moved without moving")
     args = parser.parse_args()
 
-    source_dir = args.source if args.source.is_absolute() else config.DATA_DIR / args.source
+    source_dir = args.source if args.source.is_absolute() else config.dataDir / args.source
     if not source_dir.exists():
         print(f"Error: {source_dir} does not exist")
         sys.exit(1)

@@ -9,3 +9,4 @@ out/
 *.onnx
 !frontend/public/model.onnx
 model.pt
+models/*.pt

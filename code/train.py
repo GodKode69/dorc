@@ -4,134 +4,172 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from collections import Counter
 
 import config
-from dataset import get_dataloaders
-from model import build_model, load_backbone_weights
+from dataset import getDataloaders
+from model import buildModel, loadBackboneWeights
 
-INCREMENT_LR = 0.0001
-INCREMENT_EPOCHS = 15
-INCREMENT_BATCH_SIZE = 32
+incrementLr = 0.0001
+incrementEpochs = 15
+incrementBatchSize = 32
 
 
-def train_one_epoch(model, loader, criterion, optimizer, device):
+def trainOneEpoch(model, loader, criterion, optimizer, device, scaler):
     model.train()
-    running_loss = 0.0
+    runningLoss = 0.0
     correct = 0
     total = 0
 
     for images, labels in loader:
-        images, labels = images.to(device), labels.to(device)
+        images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+        if images.dim() == 4:
+            images = images.to(memory_format=torch.channels_last)
 
         optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
 
-        running_loss += loss.item() * images.size(0)
+        with torch.amp.autocast(device_type=device.type, enabled=scaler is not None):
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
+
+        runningLoss += loss.item() * images.size(0)
         _, predicted = outputs.max(1)
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
 
-    return running_loss / total, 100.0 * correct / total
+    return runningLoss / total, 100.0 * correct / total
 
 
 def validate(model, loader, criterion, device):
     model.eval()
-    running_loss = 0.0
+    runningLoss = 0.0
     correct = 0
     total = 0
 
     with torch.no_grad():
         for images, labels in loader:
-            images, labels = images.to(device), labels.to(device)
+            images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+            if images.dim() == 4:
+                images = images.to(memory_format=torch.channels_last)
             outputs = model(images)
             loss = criterion(outputs, labels)
 
-            running_loss += loss.item() * images.size(0)
+            runningLoss += loss.item() * images.size(0)
             _, predicted = outputs.max(1)
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
 
-    return running_loss / total, 100.0 * correct / total
+    return runningLoss / total, 100.0 * correct / total
 
 
 def main():
     incremental = "--increment" in sys.argv
-    training_start = time.time()
+    trainingStart = time.time()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    if incremental:
-        config.BATCH_SIZE = INCREMENT_BATCH_SIZE
-        print(f"Incremental batch size: {INCREMENT_BATCH_SIZE}")
-
-    train_loader, val_loader, class_to_idx = get_dataloaders()
-    num_classes = len(class_to_idx)
-    print(f"Classes: {num_classes}")
-    print(f"Train: {len(train_loader.dataset)} images, Val: {len(val_loader.dataset)} images")
-
-    model = build_model(num_classes=num_classes).to(device)
+    if device.type == "cuda":
+        torch.set_float32_matmul_precision("high")
+        torch.backends.cudnn.benchmark = True
 
     if incremental:
-        load_backbone_weights(model, config.MODEL_SAVE_PATH)
-        epochs = INCREMENT_EPOCHS
-        lr = INCREMENT_LR
+        config.batchSize = incrementBatchSize
+        print(f"Incremental batch size: {incrementBatchSize}")
+
+    trainLoader, valLoader, classToIdx = getDataloaders()
+    numClasses = len(classToIdx)
+    print(f"Classes: {numClasses}")
+    print(f"Train: {len(trainLoader.dataset)} images, Val: {len(valLoader.dataset)} images")
+
+    trainTargets = [trainLoader.dataset.dataset.samples[i][1] for i in trainLoader.dataset.indices]
+    classCounts = Counter(trainTargets)
+    classWeights = torch.tensor(
+        [len(trainTargets) / (numClasses * classCounts[i]) for i in range(numClasses)],
+        dtype=torch.float,
+    )
+
+    model = buildModel(numClasses=numClasses).to(device)
+    if device.type == "cuda":
+        model = model.to(memory_format=torch.channels_last)
+
+    if incremental:
+        loadBackboneWeights(model, config.modelSavePath)
+        numEpochs = incrementEpochs
+        currentLr = incrementLr
     else:
-        epochs = config.EPOCHS
-        lr = config.LR
+        numEpochs = config.epochs
+        currentLr = config.lr
 
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    total_params = sum(p.numel() for p in model.parameters())
-    print(f"Parameters: {trainable_params:,} trainable / {total_params:,} total")
+    try:
+        model = torch.compile(model)
+        print("torch.compile enabled")
+    except Exception as e:
+        print(f"torch.compile failed, continuing without: {e}")
 
-    criterion = nn.CrossEntropyLoss(label_smoothing=config.LABEL_SMOOTHING)
+    trainableParams = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    totalParams = sum(p.numel() for p in model.parameters())
+    print(f"Parameters: {trainableParams:,} trainable / {totalParams:,} total")
+
+    criterion = nn.CrossEntropyLoss(weight=classWeights.to(device), label_smoothing=config.labelSmoothing)
 
     trainable = [p for p in model.parameters() if p.requires_grad]
-    optimizer = optim.AdamW(trainable, lr=lr, weight_decay=config.WEIGHT_DECAY)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    optimizer = optim.AdamW(trainable, lr=currentLr, weight_decay=config.weightDecay, fused=True)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs)
 
-    best_val_acc = 0.0
-    patience_counter = 0
+    scaler = torch.amp.GradScaler("cuda") if device.type == "cuda" else None
+    if scaler:
+        print("AMP enabled")
 
-    for epoch in range(1, epochs + 1):
+    bestValAcc = 0.0
+    patienceCounter = 0
+
+    for epoch in range(1, numEpochs + 1):
         start = time.time()
 
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc = validate(model, val_loader, criterion, device)
+        trainLoss, trainAcc = trainOneEpoch(model, trainLoader, criterion, optimizer, device, scaler)
+        valLoss, valAcc = validate(model, valLoader, criterion, device)
         scheduler.step()
 
         elapsed = time.time() - start
-        lr_now = optimizer.param_groups[0]["lr"]
+        lrNow = optimizer.param_groups[0]["lr"]
         print(
-            f"Epoch [{epoch}/{epochs}] "
-            f"Train Loss: {train_loss:.4f} Acc: {train_acc:.2f}% | "
-            f"Val Loss: {val_loss:.4f} Acc: {val_acc:.2f}% | "
-            f"LR: {lr_now:.6f} | Time: {elapsed:.1f}s"
+            f"Epoch [{epoch}/{numEpochs}] "
+            f"Train Loss: {trainLoss:.4f} Acc: {trainAcc:.2f}% | "
+            f"Val Loss: {valLoss:.4f} Acc: {valAcc:.2f}% | "
+            f"LR: {lrNow:.6f} | Time: {elapsed:.1f}s"
         )
 
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            patience_counter = 0
+        if valAcc > bestValAcc:
+            bestValAcc = valAcc
+            patienceCounter = 0
+            rawState = model.state_dict()
+            cleanState = {k.replace("_orig_mod.", ""): v for k, v in rawState.items()}
             torch.save({
-                "model_state_dict": model.state_dict(),
-                "class_to_idx": class_to_idx,
-            }, config.MODEL_SAVE_PATH)
-            print(f"  -> Saved best model (val_acc: {val_acc:.2f}%)")
+                "model_state_dict": cleanState,
+                "class_to_idx": classToIdx,
+            }, config.modelSavePath)
+            print(f"  -> Saved best model (val_acc: {valAcc:.2f}%)")
         else:
-            patience_counter += 1
-            if patience_counter >= config.EARLY_STOP_PATIENCE:
-                print(f"\nEarly stopping at epoch {epoch} (no improvement for {config.EARLY_STOP_PATIENCE} epochs)")
+            patienceCounter += 1
+            if patienceCounter >= config.earlyStopPatience:
+                print(f"\nEarly stopping at epoch {epoch} (no improvement for {config.earlyStopPatience} epochs)")
                 break
 
-    total_time = time.time() - training_start
-    hours, remainder = divmod(total_time, 3600)
+    totalTime = time.time() - trainingStart
+    hours, remainder = divmod(totalTime, 3600)
     minutes, seconds = divmod(remainder, 60)
-    print(f"\nTraining complete. Best val accuracy: {best_val_acc:.2f}%")
+    print(f"\nTraining complete. Best val accuracy: {bestValAcc:.2f}%")
     print(f"Total time: {int(hours)}h {int(minutes)}m {int(seconds)}s")
-    print(f"Model saved to {config.MODEL_SAVE_PATH}")
+    print(f"Model saved to {config.modelSavePath}")
 
 
 if __name__ == "__main__":

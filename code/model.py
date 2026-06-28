@@ -4,9 +4,9 @@ from torchvision import models
 import config
 
 
-def build_model(num_classes=None):
-    if num_classes is None:
-        num_classes = config.NUM_CLASSES
+def buildModel(numClasses=None):
+    if numClasses is None:
+        numClasses = config.numClasses
     model = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT)
 
     for param in model.parameters():
@@ -15,31 +15,31 @@ def build_model(num_classes=None):
     for param in model.features[-3:].parameters():
         param.requires_grad = True
 
-    in_features = model.classifier[1].in_features
+    inFeatures = model.classifier[1].in_features
     model.classifier = nn.Sequential(
         nn.Dropout(p=0.4, inplace=True),
-        nn.Linear(in_features, num_classes),
+        nn.Linear(inFeatures, numClasses),
     )
 
     return model
 
 
-def load_backbone_weights(model, checkpoint_path):
+def loadBackboneWeights(model, checkpointPath):
     import torch
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    old_state = checkpoint["model_state_dict"]
+    checkpoint = torch.load(checkpointPath, map_location="cpu", weights_only=False)
+    oldState = checkpoint["model_state_dict"]
 
-    backbone_state = {}
+    backboneState = {}
     skipped = []
-    for k, v in old_state.items():
+    for k, v in oldState.items():
         if k.startswith("classifier"):
             skipped.append(k)
             continue
         if k in model.state_dict() and model.state_dict()[k].shape == v.shape:
-            backbone_state[k] = v
+            backboneState[k] = v
 
-    model.load_state_dict(backbone_state, strict=False)
-    print(f"Loaded {len(backbone_state)} backbone layers from {checkpoint_path}")
+    model.load_state_dict(backboneState, strict=False)
+    print(f"Loaded {len(backboneState)} backbone layers from {checkpointPath}")
     if skipped:
         print(f"Skipped {len(skipped)} classifier layers (output size changed):")
         for k in skipped:

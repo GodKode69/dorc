@@ -94,16 +94,17 @@ def next_filename(dest_dir, prefix):
 
 def run_pipeline(species, count):
     clip_model, preprocess, device = load_clip_model()
-    labels = config.CLASSES
+    labels = config.classes
 
     confirmed = 0
     total_scraped = 0
     stats = {"species_match": 0, "reclassified": 0, "unconfirmed": 0, "skipped": 0, "deduped": 0}
 
-    species_dir = config.NEW_DIR / species
+    species_dir = config.newDir / species
     species_dir.mkdir(parents=True, exist_ok=True)
+    print(f"  Output directory: {species_dir}/")
 
-    existing_hashes = load_existing_hashes(config.NEW_DIR, config.UNCONFIRMED_DIR, config.DATA_DIR)
+    existing_hashes = load_existing_hashes(config.newDir, config.unconfirmedDir, config.dataDir)
     print(f"  Loaded {len(existing_hashes)} existing image hashes for dedup")
 
     max_retries = 3
@@ -160,13 +161,13 @@ def run_pipeline(species, count):
                 continue
 
             if pr_label == cl_label:
-                dest_dir = config.NEW_DIR / cl_label
+                dest_dir = config.newDir / cl_label
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 dest = next_filename(dest_dir, cl_label)
                 shutil.move(str(img_path), str(dest))
                 stats["reclassified"] += 1
             else:
-                dest_dir = config.UNCONFIRMED_DIR / cl_label
+                dest_dir = config.unconfirmedDir / cl_label
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 dest = dest_dir / img_path.name
                 if dest.exists():
@@ -195,9 +196,9 @@ if __name__ == "__main__":
     parser.add_argument("species", type=str, help="Species to scrape (e.g. wolf)")
     args = parser.parse_args()
 
-    if args.species not in config.CLASSES:
-        print(f"Error: '{args.species}' not in CLASSES list")
-        print(f"Available: {', '.join(config.CLASSES)}")
+    if args.species not in config.classes:
+        print(f"Error: '{args.species}' not in classes list")
+        print(f"Available: {', '.join(config.classes)}")
         sys.exit(1)
 
     run_pipeline(args.species, args.count)

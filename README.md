@@ -4,7 +4,7 @@ DorC is an open source image classification model. It is built with PyTorch tran
 
 ### Preview
 
-![Preview](preview.png)
+![Preview](reprots/preview.png)
 
 ## Classes
 
@@ -155,12 +155,12 @@ Client-side inference using `onnxruntime-web` (WASM)
 #### Top 5 Most Confused Class Pairs
 
 | Case  | Predicted | Count |
-| ------| --------- | ----: |
-| man   | woman     |    36 |
-| frog  | toad      |    19 |
-| woman | man       |    18 |
-| mouse | rat       |    15 |
-| rat   | mouse     |    11 |
+| -------| -----------| ------:|
+| man   | woman     | 36    |
+| frog  | toad      | 19    |
+| woman | man       | 18    |
+| mouse | rat       | 15    |
+| rat   | mouse     | 11    |
 
 #### Worst 10 Performing Classes
 
