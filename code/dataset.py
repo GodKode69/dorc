@@ -91,7 +91,7 @@ def getDataloaders():
         num_workers=config.numWorkers,
         pin_memory=True,
         persistent_workers=True,
-        prefetch_factor=4,
+        prefetch_factor=2,
         drop_last=True,
     )
     valLoader = DataLoader(
@@ -117,6 +117,6 @@ def getFullDataloader():
         num_workers=config.numWorkers,
         pin_memory=True,
         persistent_workers=True,
-        prefetch_factor=4,
+        prefetch_factor=2,
     )
     return loader, fullDataset.classToIdx

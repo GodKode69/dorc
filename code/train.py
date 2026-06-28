@@ -1,6 +1,8 @@
 import time
 import sys
 import os
+import warnings
+warnings.filterwarnings("ignore", message="Palette images")
 
 import torch
 import torch.nn as nn
@@ -70,8 +72,23 @@ def validate(model, loader, criterion, device, useBf16):
     return runningLoss.item() / total, 100.0 * correct / total
 
 
+def saveCheckpoint(model, optimizer, scheduler, classToIdx, epoch, bestValAcc, patienceCounter):
+    rawState = model.state_dict()
+    cleanState = {k.replace("_orig_mod.", ""): v for k, v in rawState.items()}
+    torch.save({
+        "model_state_dict": cleanState,
+        "class_to_idx": classToIdx,
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+        "epoch": epoch,
+        "best_val_acc": bestValAcc,
+        "patience_counter": patienceCounter,
+    }, config.modelSavePath)
+
+
 def main():
     incremental = "--increment" in sys.argv
+    resume = "--resume" in sys.argv
     trainingStart = time.time()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -141,10 +158,23 @@ def main():
     schedulerCosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=numEpochs - config.warmupEpochs)
     scheduler = optim.lr_scheduler.SequentialLR(optimizer, [schedulerWarmup, schedulerCosine], milestones=[config.warmupEpochs])
 
+    startEpoch = 1
     bestValAcc = 0.0
     patienceCounter = 0
 
-    for epoch in range(1, numEpochs + 1):
+    if resume:
+        checkpoint = torch.load(config.modelSavePath, map_location=device, weights_only=False)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        if "optimizer_state_dict" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        if "scheduler_state_dict" in checkpoint:
+            scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        startEpoch = checkpoint.get("epoch", 0) + 1
+        bestValAcc = checkpoint.get("best_val_acc", 0.0)
+        patienceCounter = checkpoint.get("patience_counter", 0)
+        print(f"Resumed from epoch {checkpoint.get('epoch', 0)} (best_val_acc: {bestValAcc:.2f}%, patience: {patienceCounter})")
+
+    for epoch in range(startEpoch, numEpochs + 1):
         start = time.time()
 
         trainLoss = trainOneEpoch(model, trainLoader, criterion, optimizer, device, useBf16)
@@ -163,12 +193,7 @@ def main():
         if valAcc > bestValAcc:
             bestValAcc = valAcc
             patienceCounter = 0
-            rawState = model.state_dict()
-            cleanState = {k.replace("_orig_mod.", ""): v for k, v in rawState.items()}
-            torch.save({
-                "model_state_dict": cleanState,
-                "class_to_idx": classToIdx,
-            }, config.modelSavePath)
+            saveCheckpoint(model, optimizer, scheduler, classToIdx, epoch, bestValAcc, patienceCounter)
             print(f"  -> Saved best model (val_acc: {valAcc:.2f}%)")
         else:
             patienceCounter += 1
