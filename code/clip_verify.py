@@ -79,7 +79,7 @@ def verify():
         mismatchWriter.writerow(["path", "ground_truth", "model_prediction", "clip_label", "model_confidence", "clip_confidence"])
         agreementWriter.writerow(["path", "ground_truth", "model_prediction", "clip_label", "model_confidence", "clip_confidence"])
 
-        for className in sorted(classToIdx.values()):
+        for className in sorted(classToIdx.keys()):
             classDir = config.dataDir / className
             if not classDir.exists():
                 continue
