@@ -75,7 +75,7 @@ cd code
 python export_onnx.py
 ```
 
-Exports model to ONNX format for web deployment (~16MB).
+Exports model to ONNX format for web deployment.
 
 ## Project Structure
 
@@ -147,35 +147,34 @@ Client-side inference using `onnxruntime-web` (WASM)
 
 ## Results
 
-- **Overall accuracy:** 96.43%
-- **Average confidence:** 85.96%
+- **Overall accuracy:** 97.2%
+- **Average confidence:** 69.4%
 
 ### Validation Evaluation
 
-#### Top 5 Most Confused Class Pairs
+#### Top Confused Pairs (True -> Predicted: Count)
 
-| Case  | Predicted | Count |
-| -------| -----------| ------:|
-| man   | woman     | 36    |
-| frog  | toad      | 19    |
-| woman | man       | 18    |
-| mouse | rat       | 15    |
-| rat   | mouse     | 11    |
+man -> woman: 161
+woman -> man: 76
+cat -> dog: 34
+turtle -> goose: 21
+dolphin -> whale: 19
+dog -> cat: 16
+rat -> mouse: 15
+whale -> dolphin: 15
+shark -> whale: 14
+toad -> frog: 12
+turtle -> whale: 12
+fish -> corals: 11
+shark -> dolphin: 11
+fish -> puffers: 9
+corals -> fish: 8
+mouse -> rat: 8
+puffers -> eel: 8
+puffers -> fish: 8
+fish -> shark: 7
+frog -> toad: 7
 
-#### Worst 10 Performing Classes
-
-| Rank | Class     |   Accuracy | Correct / Total |
-| ---: | --------- | ---------: | --------------: |
-|    1 | robin     | **68.75%** |         11 / 16 |
-|    2 | lizard    | **75.96%** |        79 / 104 |
-|    3 | wolf      | **80.00%** |         32 / 40 |
-|    4 | frog      | **81.03%** |        94 / 116 |
-|    5 | gecko     | **81.82%** |         54 / 66 |
-|    6 | corals    | **84.85%** |         84 / 99 |
-|    7 | sea_rays  | **85.15%** |        86 / 101 |
-|    8 | iguana    | **85.25%** |       104 / 122 |
-|    9 | chameleon | **85.71%** |         36 / 42 |
-|   10 | mouse     | **87.12%** |       115 / 132 |
 
 ## License
 

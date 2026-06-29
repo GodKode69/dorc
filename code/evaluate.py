@@ -30,7 +30,7 @@ def evaluate(model, loader, device):
     useBf16 = device.type == "cuda" and torch.cuda.is_bf16_supported()
 
     with torch.inference_mode():
-        for images, labels in loader:
+        for images, labels, _weights in loader:
             images = images.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
             if images.dim() == 4:

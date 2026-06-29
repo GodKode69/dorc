@@ -11,3 +11,4 @@ out/
 model.pt
 models/*.pt
 input/
+extra/
